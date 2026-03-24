@@ -15,6 +15,11 @@ const routes = [
     component: () => import('@/views/AlunosView.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/importar',
+    component: () => import('@/views/ImportarView.vue'),
+    meta: { requiresAuth: true }
+  },
 ]
 
 const router = createRouter({
