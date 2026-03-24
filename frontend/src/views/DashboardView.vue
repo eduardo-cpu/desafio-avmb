@@ -91,7 +91,7 @@ const statCards = computed(() => [
   { label: 'Total de Alunos', valor: store.stats?.total ?? '—', sub: 'cadastrados' },
   { label: 'Certificados', valor: store.stats?.certificados ?? '—', sub: 'com hash gerado' },
   { label: 'Pendentes', valor: store.stats?.pendentes ?? '—', sub: 'aguardando certificação' },
-  { label: 'Cancelados', valor: store.stats?.cancelados ?? '—', sub: 'soft delete' },
+  { label: 'Cancelados', valor: store.stats?.cancelados ?? '—', sub: 'cancelamentos' },
 ])
 
 function badgeVariant(status) {

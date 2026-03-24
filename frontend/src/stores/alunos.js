@@ -29,10 +29,18 @@ export const useAlunosStore = defineStore('alunos', () => {
     return data.data
   }
 
-  async function remover(id) {
-    await http.delete(`/alunos/${id}`)
-    alunos.value = alunos.value.filter(a => a.id !== id)
+  async function cancelar(id) {
+    await http.patch(`/alunos/${id}/cancelar`)
+    const index = alunos.value.findIndex(a => a.id === id)
+    if (index !== -1) alunos.value[index].status = 'CANCELADO'
   }
 
-  return { alunos, loading, listar, criar, atualizar, remover }
+  async function gerarHash(id) {
+    const { data } = await http.post(`/alunos/${id}/gerar-hash`)
+    const index = alunos.value.findIndex(a => a.id === id)
+    if (index !== -1) alunos.value[index] = data.data
+    return data.data
+  }
+
+  return { alunos, loading, listar, criar, atualizar, cancelar, gerarHash }
 })

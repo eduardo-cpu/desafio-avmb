@@ -5,7 +5,10 @@
         <h1 class="text-2xl font-bold">Alunos</h1>
         <p class="text-muted-foreground text-sm">Gerencie os alunos da sua instituição</p>
       </div>
-      <Button @click="abrirModal()">+ Novo Aluno</Button>
+      <div class="flex gap-2">
+        <Button variant="outline" @click="router.push('/dashboard')">← Dashboard</Button>
+        <Button @click="abrirModal()">+ Novo Aluno</Button>
+      </div>
     </div>
 
     <Card>
@@ -27,7 +30,7 @@
             <TableRow v-else-if="store.alunos.length === 0">
               <TableCell colspan="5" class="text-center py-8 text-muted-foreground">Nenhum aluno cadastrado</TableCell>
             </TableRow>
-            <TableRow v-for="aluno in store.alunos" :key="aluno.id">
+            <TableRow v-for="aluno in store.alunos" :key="aluno.id" :class="aluno.status === 'CANCELADO' ? 'opacity-60' : ''">
               <TableCell class="font-medium">{{ aluno.nome }}</TableCell>
               <TableCell>{{ formatCpf(aluno.cpf) }}</TableCell>
               <TableCell>{{ aluno.curso?.nome }}</TableCell>
@@ -35,8 +38,19 @@
                 <Badge :variant="badgeVariant(aluno.status)">{{ aluno.status }}</Badge>
               </TableCell>
               <TableCell class="text-right space-x-2">
-                <Button variant="outline" size="sm" @click="abrirModal(aluno)">Editar</Button>
-                <Button variant="destructive" size="sm" @click="confirmarRemover(aluno.id)">Remover</Button>
+                <template v-if="aluno.status !== 'CANCELADO'">
+                  <Button variant="outline" size="sm" @click="abrirModal(aluno)">Editar</Button>
+                  <Button
+                    v-if="!aluno.hash"
+                    variant="secondary"
+                    size="sm"
+                    @click="handleGerarHash(aluno.id)"
+                  >
+                    Gerar Hash
+                  </Button>
+                  <Button variant="destructive" size="sm" @click="handleCancelar(aluno.id)">Cancelar</Button>
+                </template>
+                <span v-else class="text-xs text-muted-foreground">Cancelado</span>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -116,6 +130,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAlunosStore } from '@/stores/alunos'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -123,15 +138,10 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Table, TableBody, TableCell, TableHead,
-  TableHeader, TableRow
-} from '@/components/ui/table'
-import {
-  Dialog, DialogContent, DialogDescription,
-  DialogFooter, DialogHeader, DialogTitle
-} from '@/components/ui/dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
+const router = useRouter()
 const store = useAlunosStore()
 
 const modalAberto = ref(false)
@@ -182,9 +192,19 @@ async function salvar() {
   }
 }
 
-async function confirmarRemover(id) {
-  if (confirm('Deseja remover este aluno?')) {
-    await store.remover(id)
+async function handleCancelar(id) {
+  if (confirm('Deseja cancelar este aluno? Esta ação não pode ser desfeita.')) {
+    await store.cancelar(id)
+  }
+}
+
+async function handleGerarHash(id) {
+  if (confirm('Deseja gerar o hash para este aluno? Esta ação é irreversível.')) {
+    try {
+      await store.gerarHash(id)
+    } catch (e) {
+      alert(e.response?.data?.message || 'Erro ao gerar hash')
+    }
   }
 }
 
