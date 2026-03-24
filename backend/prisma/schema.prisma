@@ -55,7 +55,6 @@ model Aluno {
 
 enum AlunoStatus {
   PENDENTE
-  ATIVO
   CERTIFICADO
   CANCELADO
 }
