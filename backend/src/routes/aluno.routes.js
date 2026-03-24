@@ -1,3 +1,13 @@
 const router = require('express').Router();
-router.get('/ping', (req, res) => res.json({ ok: true, route: 'alunos' }));
+const auth = require('../middlewares/auth.middleware');
+const { listar, buscar, criar, atualizar, remover } = require('../controllers/aluno.controller');
+
+router.use(auth);
+
+router.get('/', listar);
+router.get('/:id', buscar);
+router.post('/', criar);
+router.put('/:id', atualizar);
+router.delete('/:id', remover);
+
 module.exports = router;
