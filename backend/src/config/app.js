@@ -1,8 +1,8 @@
 require('dotenv').config();
-const express   = require('express');
-const cors      = require('cors');
-const helmet    = require('helmet');
-const morgan    = require('morgan');
+const express  = require('express');
+const cors     = require('cors');
+const helmet   = require('helmet');
+const morgan   = require('morgan');
 require('express-async-errors');
 
 const app = express();
@@ -12,16 +12,14 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Rotas
-const authRoutes    = require('../routes/auth.routes');
-const alunoRoutes   = require('../routes/aluno.routes');
-const publicRoutes  = require('../routes/public.routes');
+const authRoutes   = require('../routes/auth.routes');
+const alunoRoutes  = require('../routes/aluno.routes');
+const publicRoutes = require('../routes/public.routes');
 
 app.use('/api/auth',   authRoutes);
 app.use('/api/alunos', alunoRoutes);
-app.use('/',           publicRoutes);
+app.use('/api',        publicRoutes);
 
-// Handler de erros global
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ status: 'error', message: err.message });
