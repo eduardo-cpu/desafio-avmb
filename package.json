@@ -1,0 +1,17 @@
+{
+  "name": "desafio-avmb",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up",
+    "dev:build": "docker compose up --build",
+    "stop": "docker compose down",
+    "stop:volumes": "docker compose down -v",
+    "logs": "docker compose logs -f",
+    "logs:backend": "docker compose logs -f backend",
+    "logs:frontend": "docker compose logs -f frontend",
+    "test": "npm run test --prefix backend && npm run test --prefix frontend",
+    "test:backend": "npm run test --prefix backend",
+    "test:frontend": "npm run test --prefix frontend"
+  }
+}
