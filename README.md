@@ -1,5 +1,3 @@
-# EduCert — Controle de Alunos
-
 Plataforma para instituições de ensino gerenciarem alunos, importarem dados via JSON, emitirem certificados em XML e notificarem alunos via webhook.
 
 ---
