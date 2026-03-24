@@ -1,3 +1,7 @@
 const router = require('express').Router();
-router.get('/ping', (req, res) => res.json({ ok: true, route: 'auth' }));
+const { register, login } = require('../controllers/auth.controller');
+
+router.post('/register', register);
+router.post('/login', login);
+
 module.exports = router;
