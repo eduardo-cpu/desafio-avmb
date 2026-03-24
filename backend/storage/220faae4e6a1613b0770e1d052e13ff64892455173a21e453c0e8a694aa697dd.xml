@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<certificado>
+  <aluno>
+    <id>4e92ce4d-5626-40ff-8444-434c238d4d7c</id>
+    <nome>Teste do teste</nome>
+    <cpf>52998224725</cpf>
+    <dtNascimento>1995-05-20</dtNascimento>
+  </aluno>
+  <curso>
+    <nome>Engenharia de Software</nome>
+    <codigo>ES-001</codigo>
+    <dtInicio>2024-01-01</dtInicio>
+    <dtFim>2024-12-31</dtFim>
+    <docente>Prof. Ana</docente>
+  </curso>
+  <certificacao>
+    <hash>220faae4e6a1613b0770e1d052e13ff64892455173a21e453c0e8a694aa697dd</hash>
+    <geradoEm>2026-03-24T03:22:34.538Z</geradoEm>
+  </certificacao>
+</certificado>
