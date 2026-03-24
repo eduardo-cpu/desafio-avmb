@@ -7,6 +7,7 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" @click="router.push('/dashboard')">← Dashboard</Button>
+        <Button variant="outline" @click="router.push('/importar')">Importar JSON</Button>
         <Button @click="abrirModal()">+ Novo Aluno</Button>
       </div>
     </div>

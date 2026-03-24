@@ -31,7 +31,10 @@
           <CardTitle>Alunos Recentes</CardTitle>
           <CardDescription>Últimos 5 cadastrados</CardDescription>
         </div>
-        <Button variant="outline" size="sm" @click="router.push('/alunos')">Ver todos →</Button>
+        <div class="flex gap-2">
+          <Button variant="outline" size="sm" @click="router.push('/importar')">Importar JSON</Button>
+          <Button variant="outline" size="sm" @click="router.push('/alunos')">Ver todos →</Button>
+        </div>
       </CardHeader>
       <CardContent class="p-0">
         <Table>
