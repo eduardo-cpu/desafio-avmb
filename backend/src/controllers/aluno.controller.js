@@ -58,8 +58,8 @@ async function atualizar(req, res) {
     where: { id: req.params.id, instituicaoId: req.institutionId, deletedAt: null },
   });
   if (!aluno) return res.status(404).json({ status: 'error', message: 'Aluno não encontrado' });
-  if (aluno.status === 'CANCELADO') {
-    return res.status(400).json({ status: 'error', message: 'Aluno cancelado não pode ser editado' });
+  if (aluno.status === 'CANCELADO' || aluno.status === 'CERTIFICADO') {
+    return res.status(400).json({ status: 'error', message: 'Aluno certificado ou cancelado não pode ser editado' });
   }
 
   const { nome, cpf, dtNascimento, urlCallback, status } = req.body;
