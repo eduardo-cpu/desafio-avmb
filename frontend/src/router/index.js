@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const routes = [
-  { path: '/', redirect: '/alunos' },
+  { path: '/', redirect: '/dashboard' },
   { path: '/login', component: () => import('@/views/LoginView.vue') },
   { path: '/validar/:hash', component: () => import('@/views/ValidarView.vue') },
   {

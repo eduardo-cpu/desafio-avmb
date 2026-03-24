@@ -5,7 +5,7 @@ const { dispararWebhook } = require('../services/webhook.service');
 
 async function gerarHashAluno(req, res) {
   const aluno = await prisma.aluno.findFirst({
-    where: { id: req.params.id, instituicaoId: req.institutionId, deletedAt: null },
+    where: { id: req.params.id, instituicaoId: req.institutionId, deletedAt: null, status: { not: 'CANCELADO' } },
     include: { curso: true },
   });
 
