@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aluno",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "nome",
+    "cpf",
+    "curso",
+    "url_callback"
+  ],
+  "properties": {
+    "nome": {
+      "description": "Nome completo do aluno",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 255
+    },
+    "cpf": {
+      "description": "CPF do aluno (com ou sem máscara)",
+      "type": "string",
+      "pattern": "^(\\d{11}|\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2})$"
+    },
+    "dt_nascimento": {
+      "description": "Data de nascimento do aluno",
+      "type": "string",
+      "format": "date"
+    },
+    "url_callback": {
+      "description": "Url para notificacar o aluno quando seu xml for concluido",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 255
+    },
+    "curso": {
+      "description": "Objeto contendo informações do curso",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nome",
+        "codigo",
+        "dt_inicio",
+        "dt_fim",
+        "docente"
+      ],
+      "properties": {
+        "nome": {
+          "description": "Nome do curso",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 255
+        },
+        "codigo": {
+          "description": "Código identificador do curso",
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "dt_inicio": {
+          "description": "Data de início do curso",
+          "type": "string",
+          "format": "date"
+        },
+        "dt_fim": {
+          "description": "Data de término do curso",
+          "type": "string",
+          "format": "date"
+        },
+        "docente": {
+          "description": "Nome do docente responsável",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 255
+        }
+      }
+    }
+  }
+}

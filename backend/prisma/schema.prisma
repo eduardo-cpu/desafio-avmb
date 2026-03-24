@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Instituicao {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  createdAt DateTime @default(now())
+  alunos    Aluno[]
+
+  @@map("instituicoes")
+}
+
+model Curso {
+  id       String   @id @default(uuid())
+  nome     String
+  codigo   String
+  dtInicio DateTime
+  dtFim    DateTime
+  docente  String
+  alunos   Aluno[]
+
+  @@map("cursos")
+}
+
+model Aluno {
+  id           String      @id @default(uuid())
+  nome         String
+  cpf          String
+  dtNascimento DateTime?
+  status       AlunoStatus @default(PENDENTE)
+  hash         String?     @unique
+  filePath     String?
+  urlCallback  String
+  deletedAt    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  instituicaoId String
+  instituicao   Instituicao @relation(fields: [instituicaoId], references: [id])
+
+  cursoId String
+  curso   Curso  @relation(fields: [cursoId], references: [id])
+
+  @@unique([cpf, cursoId])
+  @@map("alunos")
+}
+
+enum AlunoStatus {
+  PENDENTE
+  ATIVO
+  CERTIFICADO
+  CANCELADO
+}
