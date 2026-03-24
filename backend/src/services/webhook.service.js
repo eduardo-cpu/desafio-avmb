@@ -6,7 +6,7 @@ async function dispararWebhook(aluno) {
     cpf: aluno.cpf,
     validation_code: aluno.hash,
     hash: aluno.hash,
-    url_consulta: `${process.env.HOST}/validar/${aluno.hash}`,
+    url_consulta: `${process.env.FRONTEND_URL}/validar/${aluno.hash}`,
   };
 
   try {
