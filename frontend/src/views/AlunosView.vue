@@ -26,12 +26,20 @@
           </TableHeader>
           <TableBody>
             <TableRow v-if="store.loading">
-              <TableCell colspan="5" class="text-center py-8 text-muted-foreground">Carregando...</TableCell>
+              <TableCell colspan="5" class="text-center py-8 text-muted-foreground"
+                >Carregando...</TableCell
+              >
             </TableRow>
             <TableRow v-else-if="store.alunos.length === 0">
-              <TableCell colspan="5" class="text-center py-8 text-muted-foreground">Nenhum aluno cadastrado</TableCell>
+              <TableCell colspan="5" class="text-center py-8 text-muted-foreground"
+                >Nenhum aluno cadastrado</TableCell
+              >
             </TableRow>
-            <TableRow v-for="aluno in store.alunos" :key="aluno.id" :class="aluno.status === 'CANCELADO' ? 'opacity-60' : ''">
+            <TableRow
+              v-for="aluno in store.alunos"
+              :key="aluno.id"
+              :class="['CANCELADO', 'CERTIFICADO'].includes(aluno.status) ? 'opacity-75' : ''"
+            >
               <TableCell class="font-medium">{{ aluno.nome }}</TableCell>
               <TableCell>{{ formatCpf(aluno.cpf) }}</TableCell>
               <TableCell>{{ aluno.curso?.nome }}</TableCell>
@@ -40,16 +48,26 @@
               </TableCell>
               <TableCell class="text-right space-x-2">
                 <template v-if="aluno.status !== 'CANCELADO'">
-                  <Button variant="outline" size="sm" @click="abrirModal(aluno)">Editar</Button>
+                  <Button v-if="aluno.status !== 'CERTIFICADO'" variant="outline" size="sm" @click="abrirModal(aluno)">Editar</Button>
                   <Button
                     v-if="!aluno.hash"
                     variant="secondary"
                     size="sm"
                     @click="handleGerarHash(aluno.id)"
                   >
-                    Gerar Hash
+                    Gerar Certificado
                   </Button>
-                  <Button variant="destructive" size="sm" @click="handleCancelar(aluno.id)">Cancelar</Button>
+                  <Button
+                    v-if="aluno.hash"
+                    variant="secondary"
+                    size="sm"
+                    @click="handleDownload(aluno.id, aluno.hash)"
+                  >
+                    Baixar XML
+                  </Button>
+                  <Button variant="destructive" size="sm" @click="handleCancelar(aluno.id)"
+                    >Cancelar</Button
+                  >
                 </template>
                 <span v-else class="text-xs text-muted-foreground">Cancelado</span>
               </TableCell>
@@ -131,6 +149,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import http from '@/api/http'
 import { useRouter } from 'vue-router'
 import { useAlunosStore } from '@/stores/alunos'
 import { Button } from '@/components/ui/button'
@@ -139,8 +158,22 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const router = useRouter()
 const store = useAlunosStore()
@@ -151,8 +184,11 @@ const salvando = ref(false)
 const erro = ref('')
 
 const formPadrao = () => ({
-  nome: '', cpf: '', dtNascimento: '', urlCallback: '',
-  curso: { nome: '', codigo: '', dt_inicio: '', dt_fim: '', docente: '' }
+  nome: '',
+  cpf: '',
+  dtNascimento: '',
+  urlCallback: '',
+  curso: { nome: '', codigo: '', dt_inicio: '', dt_fim: '', docente: '' },
 })
 
 const form = reactive(formPadrao())
@@ -200,12 +236,26 @@ async function handleCancelar(id) {
 }
 
 async function handleGerarHash(id) {
-  if (confirm('Deseja gerar o hash para este aluno? Esta ação é irreversível.')) {
+  if (confirm('Deseja gerar o certificado para este aluno? Esta ação é irreversível.')) {
     try {
       await store.gerarHash(id)
     } catch (e) {
       alert(e.response?.data?.message || 'Erro ao gerar hash')
     }
+  }
+}
+
+async function handleDownload(id, hash) {
+  try {
+    const { data } = await http.get(`/alunos/${id}/download`, { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/xml' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `certificado-${hash.slice(0, 8)}.xml`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    alert('Erro ao baixar o XML')
   }
 }
 
