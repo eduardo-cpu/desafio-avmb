@@ -58,6 +58,9 @@ async function atualizar(req, res) {
     where: { id: req.params.id, instituicaoId: req.institutionId, deletedAt: null },
   });
   if (!aluno) return res.status(404).json({ status: 'error', message: 'Aluno não encontrado' });
+  if (aluno.status === 'CANCELADO') {
+    return res.status(400).json({ status: 'error', message: 'Aluno cancelado não pode ser editado' });
+  }
 
   const { nome, cpf, dtNascimento, urlCallback, status } = req.body;
 
@@ -76,18 +79,21 @@ async function atualizar(req, res) {
   return res.json({ status: 'success', data: atualizado });
 }
 
-async function remover(req, res) {
+async function cancelar(req, res) {
   const aluno = await prisma.aluno.findFirst({
     where: { id: req.params.id, instituicaoId: req.institutionId, deletedAt: null },
   });
   if (!aluno) return res.status(404).json({ status: 'error', message: 'Aluno não encontrado' });
+  if (aluno.status === 'CANCELADO') {
+    return res.status(400).json({ status: 'error', message: 'Aluno já está cancelado' });
+  }
 
   await prisma.aluno.update({
     where: { id: req.params.id },
-    data: { deletedAt: new Date(), status: 'CANCELADO' },
+    data: { status: 'CANCELADO' },
   });
 
-  return res.json({ status: 'success', message: 'Aluno removido com sucesso' });
+  return res.json({ status: 'success', message: 'Aluno cancelado com sucesso' });
 }
 
-module.exports = { listar, buscar, criar, atualizar, remover };
+module.exports = { listar, buscar, criar, atualizar, cancelar };
