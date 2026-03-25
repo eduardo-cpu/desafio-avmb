@@ -6,7 +6,7 @@ Plataforma para instituições de ensino gerenciarem alunos, importarem dados vi
 
 **Backend:** Node.js, Express, Prisma ORM, PostgreSQL, JWT  
 **Frontend:** Vue 3, Vite, Pinia, Vue Router, Axios  
-**Infra:** Docker, Docker Compose
+**Infra:** Docker, Docker Compose, Nginx
 
 ---
 
@@ -37,7 +37,7 @@ Edite o `backend/.env` e ajuste as variáveis conforme necessário. Principais:
 | Variável | Descrição | Padrão |
 |---|---|---|
 | `JWT_SECRET` | Chave secreta do JWT | — |
-| `FRONTEND_URL` | URL base do frontend (usada no webhook) | `http://localhost:5173` |
+| `FRONTEND_URL` | URL base do frontend (usada no webhook) | `http://localhost` |
 | `DATABASE_URL` | String de conexão do PostgreSQL | — |
 
 ### 3. Suba os containers
@@ -48,11 +48,12 @@ npm run dev
 docker compose up --build
 ```
 
-| Serviço  | URL                   |
-|----------|-----------------------|
-| Frontend | http://localhost:5173 |
-| Backend  | http://localhost:3000 |
-| Banco    | localhost:5432        |
+| Serviço  | URL                          |
+|----------|------------------------------|
+| App      | http://localhost             |
+| API      | http://localhost/api         |
+| Banco    | localhost:5432               |
+| Prisma Studio | http://localhost:5555  |
 
 As migrations são aplicadas automaticamente na inicialização.
 
@@ -125,6 +126,23 @@ Alunos certificados ou cancelados **não podem ser editados**.
 
 ---
 
+## Arquitetura
+
+Todo o tráfego passa pelo Nginx na porta 80:
+
+```
+Navegador
+    │
+    ▼
+nginx:80
+    ├── /api/*  ──▶  backend:3000  (API REST + JWT)
+    └── /*      ──▶  frontend:5173 (Vue 3 + Vite)
+```
+
+O backend e o frontend **não expõem portas diretamente ao host** — apenas o Nginx é ponto de entrada. O Prisma Studio fica disponível em `localhost:5555` somente para uso em desenvolvimento.
+
+---
+
 ## Estrutura do projeto
 
 ```
@@ -146,6 +164,8 @@ desafio-avmb/
 │       ├── router/
 │       ├── stores/           # Pinia: auth, alunos, dashboard
 │       └── views/            # Login, Dashboard, Alunos, Importar, Validar
+├── nginx/
+│   └── nginx.conf            # Proxy reverso — /api → backend, / → frontend
 ├── docker-compose.yml
 └── package.json              # Scripts raiz
 ```
