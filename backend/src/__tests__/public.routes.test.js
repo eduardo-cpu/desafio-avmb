@@ -4,14 +4,13 @@ import request from 'supertest';
 
 const _require = createRequire(import.meta.url);
 
-// Criar mocks antes de qualquer carregamento de módulo
 const mockPrisma = {
   aluno: {
     findFirst: vi.fn(),
   },
 };
 
-// Injetar mocks no cache do require ANTES de carregar o app
+// Injetar mocks no cache do require ANTES de carregar o app.
 const modelsPath = _require.resolve('../models');
 const morganPath = _require.resolve('morgan');
 
@@ -28,10 +27,10 @@ _require.cache[morganPath] = {
   exports: vi.fn(() => (_req, _res, next) => next()),
 };
 
-// Definir variáveis de ambiente antes de carregar o app
 process.env.JWT_SECRET = 'test-secret';
 process.env.FRONTEND_URL = 'http://localhost';
 
+// As rotas públicas delegam para public.controller, que por sua vez usa o mockPrisma acima
 const app = _require('../config/app');
 
 const ALUNO_CERTIFICADO = {
@@ -89,7 +88,6 @@ describe('GET /api/validar/:hash', () => {
   test('rota é pública — não exige token de autenticação', async () => {
     mockPrisma.aluno.findFirst.mockResolvedValue(ALUNO_CERTIFICADO);
 
-    // Sem nenhum header Authorization
     const res = await request(app).get('/api/validar/abc123hashvalido');
 
     expect(res.status).toBe(200);
