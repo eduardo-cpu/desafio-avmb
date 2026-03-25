@@ -12,6 +12,12 @@
     "logs:frontend": "docker compose logs -f frontend",
     "test": "npm run test --prefix backend && npm run test --prefix frontend",
     "test:backend": "npm run test --prefix backend",
-    "test:frontend": "npm run test --prefix frontend"
+    "test:frontend": "npm run test --prefix frontend",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "husky": "^9.1.7"
   }
 }

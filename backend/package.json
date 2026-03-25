@@ -11,7 +11,10 @@
     "generate": "prisma generate",
     "studio": "prisma studio",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/"
   },
   "keywords": [],
   "author": "",
@@ -38,8 +41,12 @@
     "xmlbuilder2": "^4.0.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.1.14",
-    "vitest": "^3.0.0",
-    "supertest": "^7.0.0"
+    "prettier": "^3.8.1",
+    "supertest": "^7.0.0",
+    "vitest": "^3.0.0"
   }
 }
