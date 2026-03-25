@@ -10,6 +10,8 @@ RUN npx prisma generate
 
 COPY . .
 
+RUN chmod +x entrypoint.sh
+
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run dev"]
+ENTRYPOINT ["sh", "entrypoint.sh"]
