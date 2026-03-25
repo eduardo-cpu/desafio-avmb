@@ -27,4 +27,13 @@ export default defineConfig([
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,
+
+  // shadcn-vue UI components use single-word names by convention
+  {
+    name: 'app/shadcn-ui-overrides',
+    files: ['src/components/ui/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
 ])
