@@ -1,4 +1,11 @@
+const fs = require('fs');
 const prisma = require('../models');
+
+function isValidDate(str) {
+  if (!str) return false;
+  const d = new Date(str);
+  return !isNaN(d.getTime());
+}
 
 async function listar(req, res) {
   const alunos = await prisma.aluno.findMany({
@@ -25,7 +32,13 @@ async function criar(req, res) {
     return res.status(400).json({ status: 'error', message: 'Campos obrigatórios faltando' });
   }
 
-  // Reutilizar curso existente do mesmo código para esta instituição; criar se não existir
+  if (!isValidDate(curso.dt_inicio) || !isValidDate(curso.dt_fim)) {
+    return res.status(400).json({ status: 'error', message: 'Datas do curso inválidas' });
+  }
+
+  const cpfLimpo = cpf.replace(/\D/g, '');
+
+  // Reutilizar curso existente do mesmo código; criar se não existir
   let cursoCriado = await prisma.curso.findFirst({
     where: { codigo: curso.codigo },
   });
@@ -42,10 +55,18 @@ async function criar(req, res) {
     });
   }
 
+  // Verificar duplicata antes de criar (evita vazar erro P2002 do Prisma)
+  const existe = await prisma.aluno.findFirst({
+    where: { cpf: cpfLimpo, cursoId: cursoCriado.id, deletedAt: null },
+  });
+  if (existe) {
+    return res.status(409).json({ status: 'error', message: 'Aluno já matriculado neste curso' });
+  }
+
   const aluno = await prisma.aluno.create({
     data: {
       nome,
-      cpf: cpf.replace(/\D/g, ''),
+      cpf: cpfLimpo,
       dtNascimento: dtNascimento ? new Date(dtNascimento) : null,
       urlCallback,
       instituicaoId: req.institutionId,
@@ -55,6 +76,16 @@ async function criar(req, res) {
   });
 
   return res.status(201).json({ status: 'success', data: aluno });
+}
+
+async function download(req, res) {
+  const aluno = await prisma.aluno.findFirst({
+    where: { id: req.params.id, instituicaoId: req.institutionId, deletedAt: null },
+  });
+  if (!aluno?.filePath || !fs.existsSync(aluno.filePath)) {
+    return res.status(404).json({ status: 'error', message: 'Arquivo não encontrado' });
+  }
+  res.download(aluno.filePath, `certificado-${aluno.id}.xml`);
 }
 
 async function atualizar(req, res) {
@@ -100,4 +131,4 @@ async function cancelar(req, res) {
   return res.json({ status: 'success', message: 'Aluno cancelado com sucesso' });
 }
 
-module.exports = { listar, buscar, criar, atualizar, cancelar };
+module.exports = { listar, buscar, criar, download, atualizar, cancelar };
