@@ -31,7 +31,7 @@ router.get('/validar/:hash', async (req, res) => {
       },
       hash: aluno.hash,
       status: aluno.status,
-      url_download: `${process.env.HOST}/validar/${aluno.hash}/download`,
+      url_download: `${process.env.FRONTEND_URL}/validar/${aluno.hash}`,
     },
   });
 });
