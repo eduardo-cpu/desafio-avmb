@@ -252,7 +252,9 @@ async function handleDownload(id, hash) {
     const a = document.createElement('a')
     a.href = url
     a.download = `certificado-${hash.slice(0, 8)}.xml`
+    document.body.appendChild(a)
     a.click()
+    a.remove()
     URL.revokeObjectURL(url)
   } catch {
     alert('Erro ao baixar o XML')
@@ -266,7 +268,6 @@ function formatCpf(cpf) {
 function badgeVariant(status) {
   const map = {
     PENDENTE: 'secondary',
-    ATIVO: 'default',
     CERTIFICADO: 'default',
     CANCELADO: 'destructive',
   }

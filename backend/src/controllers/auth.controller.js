@@ -2,6 +2,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../models');
 
+// Hash dummy para evitar timing attack — tempo constante independente de o e-mail existir
+const DUMMY_HASH = '$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
+
 async function register(req, res) {
   const { nome, email, senha } = req.body;
 
@@ -33,12 +36,12 @@ async function login(req, res) {
   }
 
   const instituicao = await prisma.instituicao.findUnique({ where: { email } });
-  if (!instituicao) {
-    return res.status(401).json({ status: 'error', message: 'Credenciais inválidas' });
-  }
 
-  const senhaValida = await bcrypt.compare(senha, instituicao.senhaHash);
-  if (!senhaValida) {
+  // Sempre executa bcrypt.compare para tempo de resposta constante (evita timing attack)
+  const hashParaComparar = instituicao ? instituicao.senhaHash : DUMMY_HASH;
+  const senhaValida = await bcrypt.compare(senha, hashParaComparar);
+
+  if (!instituicao || !senhaValida) {
     return res.status(401).json({ status: 'error', message: 'Credenciais inválidas' });
   }
 

@@ -2,10 +2,7 @@ const prisma = require('../models');
 
 async function listar(req, res) {
   const alunos = await prisma.aluno.findMany({
-    where: {
-      instituicaoId: req.institutionId,
-      deletedAt: null,
-    },
+    where: { instituicaoId: req.institutionId, deletedAt: null },
     include: { curso: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -28,15 +25,22 @@ async function criar(req, res) {
     return res.status(400).json({ status: 'error', message: 'Campos obrigatórios faltando' });
   }
 
-  const cursoCriado = await prisma.curso.create({
-    data: {
-      nome: curso.nome,
-      codigo: curso.codigo,
-      dtInicio: new Date(curso.dt_inicio),
-      dtFim: new Date(curso.dt_fim),
-      docente: curso.docente,
-    },
+  // Reutilizar curso existente do mesmo código para esta instituição; criar se não existir
+  let cursoCriado = await prisma.curso.findFirst({
+    where: { codigo: curso.codigo },
   });
+
+  if (!cursoCriado) {
+    cursoCriado = await prisma.curso.create({
+      data: {
+        nome: curso.nome,
+        codigo: curso.codigo,
+        dtInicio: new Date(curso.dt_inicio),
+        dtFim: new Date(curso.dt_fim),
+        docente: curso.docente,
+      },
+    });
+  }
 
   const aluno = await prisma.aluno.create({
     data: {
@@ -62,7 +66,8 @@ async function atualizar(req, res) {
     return res.status(400).json({ status: 'error', message: 'Aluno certificado ou cancelado não pode ser editado' });
   }
 
-  const { nome, cpf, dtNascimento, urlCallback, status } = req.body;
+  // status não é permitido via body — mudanças de status só ocorrem via endpoints dedicados
+  const { nome, cpf, dtNascimento, urlCallback } = req.body;
 
   const atualizado = await prisma.aluno.update({
     where: { id: req.params.id },
@@ -71,7 +76,6 @@ async function atualizar(req, res) {
       ...(cpf && { cpf: cpf.replace(/\D/g, '') }),
       ...(dtNascimento && { dtNascimento: new Date(dtNascimento) }),
       ...(urlCallback && { urlCallback }),
-      ...(status && { status }),
     },
     include: { curso: true },
   });
