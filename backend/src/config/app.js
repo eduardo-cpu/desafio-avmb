@@ -20,7 +20,7 @@ app.use('/api/auth',   authRoutes);
 app.use('/api/alunos', alunoRoutes);
 app.use('/api',        publicRoutes);
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error(err);
   res.status(err.status || 500).json({ status: 'error', message: err.message });
 });
