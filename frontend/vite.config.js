@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from 'node:url'
-import path from 'node:path'
 import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
@@ -14,11 +13,5 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',
-    proxy: {
-      '/api': {
-        target: 'http://backend:3000',
-        changeOrigin: true,
-      },
-    },
   },
 })
