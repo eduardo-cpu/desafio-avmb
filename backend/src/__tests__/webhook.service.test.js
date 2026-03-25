@@ -14,11 +14,12 @@ const alunoBase = {
 
 beforeEach(() => {
   vi.spyOn(axios, "post").mockResolvedValue({ status: 200 });
-  process.env.FRONTEND_URL = "http://localhost";
+  vi.stubEnv("FRONTEND_URL", "http://localhost");
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("dispararWebhook", () => {
@@ -48,14 +49,14 @@ describe("dispararWebhook", () => {
   });
 
   test("não lança erro quando o webhook falha", async () => {
-    axios.post.mockRejectedValueOnce(new Error("Connection refused"));
+    vi.spyOn(axios, "post").mockRejectedValue(new Error("Network Error"));
 
     await expect(dispararWebhook(alunoBase)).resolves.not.toThrow();
   });
 
-  test("não lança erro quando o webhook retorna status 500", async () => {
-    axios.post.mockRejectedValueOnce({ response: { status: 500 } });
+  test("não lança erro quando urlCallback não está definida", async () => {
+    const alunoSemCallback = { ...alunoBase, urlCallback: undefined };
 
-    await expect(dispararWebhook(alunoBase)).resolves.not.toThrow();
+    await expect(dispararWebhook(alunoSemCallback)).resolves.not.toThrow();
   });
 });
