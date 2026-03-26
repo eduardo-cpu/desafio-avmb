@@ -107,7 +107,7 @@ async function cancelarAluno(id, instituicaoId) {
   if (!aluno) throw serviceError('Aluno não encontrado', 404);
   if (aluno.status === 'CANCELADO') throw serviceError('Aluno já está cancelado', 400);
 
-  return prisma.aluno.update({ where: { id }, data: { status: 'CANCELADO' } });
+  return prisma.aluno.update({ where: { id }, data: { status: 'CANCELADO', deletedAt: new Date() } });
 }
 
 async function certificarAluno(id, instituicaoId) {
