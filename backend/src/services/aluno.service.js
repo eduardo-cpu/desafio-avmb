@@ -119,12 +119,15 @@ async function certificarAluno(id, instituicaoId) {
   if (aluno.hash) throw serviceError('Hash já gerado para este aluno', 409);
 
   const hash = gerarHash(aluno);
-  const filePath = gerarXml({ ...aluno, hash });
 
-  const atualizado = await prisma.aluno.update({
-    where: { id: aluno.id },
-    data: { hash, filePath, status: 'CERTIFICADO' },
-    include: { curso: true },
+  const atualizado = await prisma.$transaction(async (tx) => {
+    const filePath = gerarXml({ ...aluno, hash });
+
+    return tx.aluno.update({
+      where: { id: aluno.id },
+      data: { hash, filePath, status: 'CERTIFICADO' },
+      include: { curso: true },
+    });
   });
 
   dispararWebhook(atualizado).catch(() => {});
