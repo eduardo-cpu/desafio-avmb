@@ -34,8 +34,8 @@ jobs:
         run: npm test
         working-directory: backend
 
-  lint-frontend:
-    name: Lint Frontend
+  lint-and-test-frontend:
+    name: Lint & Testes Frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -55,6 +55,10 @@ jobs:
 
       - name: Lint frontend (ESLint)
         run: npm run lint:eslint
+        working-directory: frontend
+
+      - name: Testes frontend (Vitest)
+        run: npm test
         working-directory: frontend
 
   commitlint:

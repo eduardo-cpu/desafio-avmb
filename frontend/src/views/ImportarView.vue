@@ -1,50 +1,47 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto space-y-6">
-
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Importar Alunos</h1>
-        <p class="text-muted-foreground text-sm">Cole um JSON com um ou mais alunos para importar em lote</p>
-      </div>
-      <Button variant="outline" @click="router.push('/alunos')">← Voltar</Button>
-    </div>
-
+  <div class="max-w-3xl space-y-6">
     <Card>
       <CardHeader>
-        <CardTitle>JSON de importação</CardTitle>
+        <CardTitle>JSON de Importação</CardTitle>
         <CardDescription>
-          Aceita objeto único ou array. Campos obrigatórios: <code class="text-xs bg-muted px-1 rounded">nome, cpf, url_callback, curso</code>
+          Aceita objeto único ou array de alunos. Campos obrigatórios:
+          <code class="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">nome, cpf, url_callback, curso</code>
         </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
-        <textarea
-          v-model="json"
-          rows="14"
-          placeholder='[
-  {
-    "nome": "João Silva",
-    "cpf": "123.456.789-09",
-    "dt_nascimento": "1990-01-15",
-    "url_callback": "https://meusite.com/webhook",
-    "curso": {
-      "nome": "Desenvolvimento Web",
-      "codigo": "DEV-001",
-      "dt_inicio": "2025-01-01",
-      "dt_fim": "2025-06-30",
-      "docente": "Prof. Carlos"
-    }
-  }
-]'
-          class="w-full font-mono text-sm border rounded-md p-3 bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-          :class="erroJson ? 'border-destructive' : 'border-input'"
-        />
-        <p v-if="erroJson" class="text-sm text-destructive">{{ erroJson }}</p>
+        <div class="relative">
+          <textarea
+            v-model="json"
+            rows="14"
+            spellcheck="false"
+            placeholder='[{ "nome": "João Silva", "cpf": "123.456.789-09", "url_callback": "https://...", "curso": { ... } }]'
+            :class="[
+              'w-full font-mono text-sm rounded-md p-3 bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring transition-colors',
+              erroJson ? 'border border-destructive' : 'border border-input'
+            ]"
+          />
+        </div>
+
+        <div
+          v-if="erroJson"
+          class="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive"
+        >
+          <AlertCircle class="size-4 shrink-0" />
+          {{ erroJson }}
+        </div>
 
         <div class="flex gap-2">
           <Button @click="importar" :disabled="importando || !json.trim()">
+            <Loader2 v-if="importando" class="size-4 animate-spin mr-1.5" />
+            <Upload v-else class="size-4 mr-1.5" />
             {{ importando ? 'Importando...' : 'Importar' }}
           </Button>
-          <Button variant="outline" @click="limpar">Limpar</Button>
+          <Button variant="outline" @click="limpar" :disabled="importando">
+            Limpar
+          </Button>
+          <Button variant="ghost" class="ml-auto text-xs" @click="usarExemplo">
+            Usar exemplo
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -52,36 +49,42 @@
     <!-- Resultado -->
     <Card v-if="resultado">
       <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <span v-if="resultado.importados > 0" class="text-green-600">
-            ✓ {{ resultado.importados }} aluno(s) importado(s)
-          </span>
-          <span v-else class="text-destructive">Nenhum aluno importado</span>
-        </CardTitle>
+        <div class="flex items-center gap-2">
+          <div v-if="resultado.importados > 0" class="flex items-center gap-2 text-green-600">
+            <CheckCircle2 class="size-5" />
+            <CardTitle class="text-green-700">{{ resultado.importados }} aluno(s) importado(s)</CardTitle>
+          </div>
+          <div v-else class="flex items-center gap-2 text-destructive">
+            <XCircle class="size-5" />
+            <CardTitle class="text-destructive">Nenhum aluno importado</CardTitle>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent class="space-y-4">
 
-        <!-- Erros por item -->
-        <div v-if="resultado.erros?.length">
-          <p class="text-sm font-medium text-destructive mb-2">
-            {{ resultado.erros.length }} item(s) com erro:
+      <CardContent class="space-y-4">
+        <!-- Erros de validação -->
+        <div v-if="resultado.erros?.length" class="space-y-2">
+          <p class="text-sm font-semibold text-destructive">
+            {{ resultado.erros.length }} item(s) com erro de validação:
           </p>
           <div
             v-for="(e, i) in resultado.erros"
             :key="i"
-            class="border border-destructive/40 rounded-md p-3 space-y-1 bg-destructive/5"
+            class="border border-destructive/30 rounded-md p-3 space-y-1.5 bg-destructive/5"
           >
-            <p class="text-xs font-semibold text-muted-foreground uppercase">{{ e.indice }}</p>
-            <div v-for="(err, j) in e.erros" :key="j" class="flex gap-2 text-sm">
-              <Badge variant="destructive" class="shrink-0">{{ err.campo }}</Badge>
-              <span>{{ err.motivo }}</span>
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Item {{ typeof e.indice === 'number' ? e.indice + 1 : e.indice }}
+            </p>
+            <div v-for="(err, j) in e.erros" :key="j" class="flex gap-2 text-sm items-start">
+              <Badge variant="destructive" class="shrink-0 mt-0.5">{{ err.campo }}</Badge>
+              <span class="text-muted-foreground">{{ err.motivo }}</span>
             </div>
           </div>
         </div>
 
         <!-- Importados com sucesso -->
         <div v-if="resultado.data?.length">
-          <p class="text-sm font-medium mb-2">Importados:</p>
+          <p class="text-sm font-semibold mb-2">Importados com sucesso:</p>
           <Table>
             <TableHeader>
               <TableRow>
@@ -94,43 +97,64 @@
             <TableBody>
               <TableRow v-for="aluno in resultado.data" :key="aluno.id">
                 <TableCell class="font-medium">{{ aluno.nome }}</TableCell>
-                <TableCell>{{ formatCpf(aluno.cpf) }}</TableCell>
+                <TableCell class="font-mono text-sm">{{ formatCpf(aluno.cpf) }}</TableCell>
                 <TableCell>{{ aluno.curso?.nome }}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{{ aluno.status }}</Badge>
-                </TableCell>
+                <TableCell><Badge variant="secondary">{{ aluno.status }}</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>
-
-          <div class="pt-2">
+          <div class="pt-3">
             <Button variant="outline" size="sm" @click="router.push('/alunos')">
               Ver todos os alunos →
             </Button>
           </div>
         </div>
-
       </CardContent>
     </Card>
-
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Upload, AlertCircle, Loader2, CheckCircle2, XCircle } from 'lucide-vue-next'
 import http from '@/api/http'
+import { useToastStore } from '@/stores/toast'
+import { formatCpf } from '@/utils/formatters'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const router = useRouter()
+const toast = useToastStore()
 
 const json = ref('')
 const erroJson = ref('')
 const importando = ref(false)
 const resultado = ref(null)
+
+const EXEMPLO = JSON.stringify([
+  {
+    nome: 'João da Silva',
+    cpf: '529.982.247-25',
+    dt_nascimento: '1995-06-15',
+    url_callback: 'https://webhook.site/exemplo',
+    curso: {
+      nome: 'Desenvolvimento Web',
+      codigo: 'DEV-001',
+      dt_inicio: '2025-01-01',
+      dt_fim: '2025-06-30',
+      docente: 'Prof. Ana Souza',
+    },
+  },
+], null, 2)
+
+function usarExemplo() {
+  json.value = EXEMPLO
+  erroJson.value = ''
+  resultado.value = null
+}
 
 async function importar() {
   erroJson.value = ''
@@ -140,7 +164,7 @@ async function importar() {
   try {
     payload = JSON.parse(json.value)
   } catch {
-    erroJson.value = 'JSON inválido. Verifique a sintaxe.'
+    erroJson.value = 'JSON inválido. Verifique a sintaxe antes de importar.'
     return
   }
 
@@ -148,12 +172,15 @@ async function importar() {
   try {
     const { data } = await http.post('/alunos/import', payload)
     resultado.value = data
+    if (data.importados > 0) {
+      toast.success(`${data.importados} aluno(s) importado(s) com sucesso`)
+    }
   } catch (e) {
     const body = e.response?.data
     if (body?.erros) {
       resultado.value = { importados: 0, erros: body.erros, data: [] }
     } else {
-      erroJson.value = body?.message || 'Erro ao importar'
+      erroJson.value = body?.message || 'Erro ao importar. Tente novamente.'
     }
   } finally {
     importando.value = false
@@ -164,9 +191,5 @@ function limpar() {
   json.value = ''
   erroJson.value = ''
   resultado.value = null
-}
-
-function formatCpf(cpf) {
-  return cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
 }
 </script>

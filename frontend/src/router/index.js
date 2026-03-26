@@ -6,19 +6,14 @@ const routes = [
   { path: '/login', component: () => import('@/views/LoginView.vue') },
   { path: '/validar/:hash', component: () => import('@/views/ValidarView.vue') },
   {
-    path: '/dashboard',
-    component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/alunos',
-    component: () => import('@/views/AlunosView.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/importar',
-    component: () => import('@/views/ImportarView.vue'),
-    meta: { requiresAuth: true }
+    path: '/',
+    component: () => import('@/components/AppLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      { path: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+      { path: 'alunos', component: () => import('@/views/AlunosView.vue') },
+      { path: 'importar', component: () => import('@/views/ImportarView.vue') },
+    ],
   },
 ]
 
