@@ -1,13 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../models');
+const serviceError = require('../utils/serviceError');
 
 // Hash dummy para evitar timing attack — tempo constante independente de o e-mail existir
 const DUMMY_HASH = '$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
 
-function serviceError(message, status) {
-  return Object.assign(new Error(message), { status });
-}
 
 async function registrar({ nome, email, senha }) {
   if (!nome || !email || !senha) {

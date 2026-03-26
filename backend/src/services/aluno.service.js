@@ -3,10 +3,8 @@ const { gerarHash } = require('./hash.service');
 const { gerarXml } = require('./xml.service');
 const { dispararWebhook } = require('./webhook.service');
 const { validarAluno, validarCpf } = require('./validation.service');
+const serviceError = require('../utils/serviceError');
 
-function serviceError(message, status) {
-  return Object.assign(new Error(message), { status });
-}
 
 function isValidDate(str) {
   if (!str) return false;

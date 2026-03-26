@@ -1,8 +1,6 @@
 const prisma = require('../models');
+const serviceError = require('../utils/serviceError');
 
-function serviceError(message, status) {
-  return Object.assign(new Error(message), { status });
-}
 
 async function buscarPorHash(hash) {
   const aluno = await prisma.aluno.findFirst({
