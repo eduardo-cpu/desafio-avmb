@@ -47,7 +47,12 @@ async function criarAluno({ nome, cpf, dtNascimento, urlCallback, curso }, insti
     throw serviceError('CPF inválido', 400);
   }
 
-  let cursoCriado = await prisma.curso.findFirst({ where: { codigo: curso.codigo } });
+  let cursoCriado = await prisma.curso.findFirst({
+    where: {
+      codigo: curso.codigo,
+      alunos: { some: { instituicaoId } },
+    },
+  });
   if (!cursoCriado) {
     cursoCriado = await prisma.curso.create({
       data: {
