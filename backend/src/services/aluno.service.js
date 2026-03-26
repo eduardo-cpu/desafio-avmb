@@ -159,7 +159,7 @@ async function certificarAluno(id, instituicaoId) {
   const hash = gerarHash(aluno);
 
   const atualizado = await prisma.$transaction(async (tx) => {
-    const filePath = gerarXml({ ...aluno, hash });
+    const filePath = await gerarXml({ ...aluno, hash });
 
     return tx.aluno.update({
       where: { id: aluno.id },

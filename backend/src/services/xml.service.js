@@ -1,10 +1,11 @@
 const { create } = require('xmlbuilder2');
-const fs = require('fs');
+const fs = require('fs/promises');
+const { existsSync, mkdirSync } = require('fs');
 const path = require('path');
 
-function gerarXml(aluno) {
+async function gerarXml(aluno) {
   const dir = path.resolve('storage');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
   const doc = create({ version: '1.0', encoding: 'UTF-8' })
     .ele('certificado')
@@ -29,7 +30,7 @@ function gerarXml(aluno) {
     .end({ prettyPrint: true });
 
   const filePath = path.join(dir, `${aluno.hash}.xml`);
-  fs.writeFileSync(filePath, doc);
+  await fs.writeFile(filePath, doc);
 
   return filePath;
 }
