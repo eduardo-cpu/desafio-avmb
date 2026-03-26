@@ -11,6 +11,7 @@ const mockPrisma = {
     findFirst: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    count: vi.fn(),
   },
   curso: {
     findFirst: vi.fn(),
@@ -110,6 +111,8 @@ beforeEach(() => {
   mockPrisma.aluno.findFirst.mockResolvedValue(null);
   mockPrisma.aluno.create.mockResolvedValue(null);
   mockPrisma.aluno.update.mockResolvedValue(null);
+  mockPrisma.aluno.count.mockResolvedValue(0);
+  mockPrisma.aluno.count.mockResolvedValue(0);
   mockPrisma.curso.findFirst.mockResolvedValue(null);
   mockPrisma.curso.create.mockResolvedValue(null);
   mockGerarXml.mockReturnValue('/tmp/certificado-test.xml');
@@ -138,22 +141,29 @@ describe('Middleware de autenticação', () => {
 // ─── Listar Alunos ────────────────────────────────────────────────────────────
 
 describe('GET /api/alunos', () => {
-  test('200 - lista todos os alunos da instituição', async () => {
+  test('200 - lista todos os alunos da instituição com paginação', async () => {
     mockPrisma.aluno.findMany.mockResolvedValue([ALUNO_BASE]);
+    mockPrisma.aluno.count.mockResolvedValue(1);
 
     const res = await request(app).get('/api/alunos').set(AUTH);
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('success');
-    expect(res.body.data).toHaveLength(1);
-    expect(res.body.data[0].nome).toBe(ALUNO_BASE.nome);
+    expect(res.body.alunos).toHaveLength(1);
+    expect(res.body.alunos[0].nome).toBe(ALUNO_BASE.nome);
+    expect(res.body.page).toBe(1);
+    expect(res.body.totalPages).toBe(1);
   });
 
   test('200 - retorna lista vazia quando não há alunos', async () => {
+    mockPrisma.aluno.findMany.mockResolvedValue([]);
+    mockPrisma.aluno.count.mockResolvedValue(0);
+
     const res = await request(app).get('/api/alunos').set(AUTH);
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toHaveLength(0);
+    expect(res.body.alunos).toHaveLength(0);
+    expect(res.body.total).toBe(0);
   });
 });
 

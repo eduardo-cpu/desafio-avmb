@@ -37,7 +37,7 @@
                 <TableCell v-for="j in 5" :key="j"><Skeleton class="h-4 w-full" /></TableCell>
               </TableRow>
             </template>
-            <TableRow v-else-if="alunosFiltrados.length === 0">
+            <TableRow v-else-if="store.alunos.length === 0">
               <TableCell colspan="5" class="text-center py-12 text-muted-foreground">
                 <div class="flex flex-col items-center gap-2">
                   <Users class="size-8 opacity-30" />
@@ -47,7 +47,7 @@
             </TableRow>
             <TableRow
               v-else
-              v-for="aluno in alunosFiltrados"
+              v-for="aluno in store.alunos"
               :key="aluno.id"
               :class="aluno.status === 'CANCELADO' ? 'opacity-60' : ''"
             >
@@ -102,6 +102,19 @@
           </TableBody>
         </Table>
       </CardContent>
+      <div v-if="store.pagination.totalPages > 1" class="flex items-center justify-between border-t px-4 py-3">
+        <p class="text-sm text-muted-foreground">
+          {{ store.pagination.total }} aluno(s) • Página {{ store.pagination.page }} de {{ store.pagination.totalPages }}
+        </p>
+        <div class="flex gap-1">
+          <Button variant="outline" size="sm" :disabled="store.pagination.page <= 1" @click="irParaPagina(store.pagination.page - 1)">
+            <ChevronLeft class="size-4" />
+          </Button>
+          <Button variant="outline" size="sm" :disabled="store.pagination.page >= store.pagination.totalPages" @click="irParaPagina(store.pagination.page + 1)">
+            <ChevronRight class="size-4" />
+          </Button>
+        </div>
+      </div>
     </Card>
 
     <!-- Modal criar/editar -->
@@ -257,9 +270,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, Upload, Pencil, Award, Download, Ban, Users, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { Search, Plus, Upload, Pencil, Award, Download, Ban, Users, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import http from '@/api/http'
 import { useAlunosStore } from '@/stores/alunos'
 import { useToastStore } from '@/stores/toast'
@@ -286,15 +299,20 @@ const salvando = ref(false)
 const erroForm = ref('')
 const errosForm = reactive({})
 
-const alunosFiltrados = computed(() => {
-  const q = busca.value.toLowerCase().replace(/\D/g, '')
-  if (!busca.value.trim()) return store.alunos
-  return store.alunos.filter(a => {
-    const nomeMatch = a.nome?.toLowerCase().includes(busca.value.toLowerCase())
-    const cpfMatch = q && a.cpf?.replace(/\D/g, '').includes(q)
-    return nomeMatch || cpfMatch
-  })
+let debounceTimer = null
+
+function buscar() {
+  store.listar({ page: 1, busca: busca.value || undefined })
+}
+
+watch(busca, () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(buscar, 300)
 })
+
+function irParaPagina(page) {
+  store.listar({ page, busca: busca.value || undefined })
+}
 
 const confirmDialog = reactive({
   aberto: false,

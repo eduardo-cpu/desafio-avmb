@@ -5,19 +5,35 @@ const { dispararWebhook } = require('./webhook.service');
 const { validarAluno, validarCpf } = require('./validation.service');
 const serviceError = require('../utils/serviceError');
 
-
 function isValidDate(str) {
   if (!str) return false;
   const d = new Date(str);
   return !isNaN(d.getTime());
 }
 
-async function listarAlunos(instituicaoId) {
-  return prisma.aluno.findMany({
-    where: { instituicaoId, deletedAt: null },
-    include: { curso: true },
-    orderBy: { createdAt: 'desc' },
-  });
+async function listarAlunos(instituicaoId, { page = 1, limit = 20, busca } = {}) {
+  const where = { instituicaoId, deletedAt: null };
+
+  if (busca) {
+    const buscaLimpa = busca.replace(/\D/g, '');
+    where.OR = [
+      { nome: { contains: busca, mode: 'insensitive' } },
+      ...(buscaLimpa.length > 0 ? [{ cpf: { contains: buscaLimpa } }] : []),
+    ];
+  }
+
+  const [alunos, total] = await Promise.all([
+    prisma.aluno.findMany({
+      where,
+      include: { curso: true },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.aluno.count({ where }),
+  ]);
+
+  return { alunos, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 async function buscarAluno(id, instituicaoId) {
@@ -31,6 +47,25 @@ async function buscarArquivoAluno(id, instituicaoId) {
   return prisma.aluno.findFirst({
     where: { id, instituicaoId, deletedAt: null },
   });
+}
+
+async function obterStats(instituicaoId) {
+  const where = { instituicaoId, deletedAt: null };
+
+  const [total, certificados, pendentes, cancelados, recentes] = await Promise.all([
+    prisma.aluno.count({ where }),
+    prisma.aluno.count({ where: { ...where, status: 'CERTIFICADO' } }),
+    prisma.aluno.count({ where: { ...where, status: 'PENDENTE' } }),
+    prisma.aluno.count({ where: { instituicaoId, status: 'CANCELADO' } }),
+    prisma.aluno.findMany({
+      where,
+      include: { curso: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+  ]);
+
+  return { total, certificados, pendentes, cancelados, recentes };
 }
 
 async function criarAluno({ nome, cpf, dtNascimento, urlCallback, curso }, instituicaoId) {
@@ -107,7 +142,10 @@ async function cancelarAluno(id, instituicaoId) {
   if (!aluno) throw serviceError('Aluno não encontrado', 404);
   if (aluno.status === 'CANCELADO') throw serviceError('Aluno já está cancelado', 400);
 
-  return prisma.aluno.update({ where: { id }, data: { status: 'CANCELADO', deletedAt: new Date() } });
+  return prisma.aluno.update({
+    where: { id },
+    data: { status: 'CANCELADO', deletedAt: new Date() },
+  });
 }
 
 async function certificarAluno(id, instituicaoId) {
@@ -143,7 +181,10 @@ async function importarAlunos(lista, instituicaoId) {
     const indice = `item[${i}]`;
 
     const { valido, erros } = validarAluno(item);
-    if (!valido) { errosGerais.push({ indice, erros }); continue; }
+    if (!valido) {
+      errosGerais.push({ indice, erros });
+      continue;
+    }
 
     const cpfLimpo = item.cpf.replace(/\D/g, '');
     if (!validarCpf(cpfLimpo)) {
@@ -175,7 +216,10 @@ async function importarAlunos(lista, instituicaoId) {
         where: { cpf: cpfLimpo, cursoId: curso.id, deletedAt: null },
       });
       if (existe) {
-        errosGerais.push({ indice, erros: [{ campo: 'cpf', motivo: 'Aluno já cadastrado neste curso' }] });
+        errosGerais.push({
+          indice,
+          erros: [{ campo: 'cpf', motivo: 'Aluno já cadastrado neste curso' }],
+        });
         continue;
       }
 
@@ -203,6 +247,7 @@ module.exports = {
   listarAlunos,
   buscarAluno,
   buscarArquivoAluno,
+  obterStats,
   criarAluno,
   atualizarAluno,
   cancelarAluno,

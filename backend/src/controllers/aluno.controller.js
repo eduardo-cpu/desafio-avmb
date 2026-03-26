@@ -2,8 +2,17 @@ const fs = require('fs');
 const alunoService = require('../services/aluno.service');
 
 async function listar(req, res) {
-  const alunos = await alunoService.listarAlunos(req.institutionId);
-  return res.json({ status: 'success', data: alunos });
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+  const busca = req.query.busca || undefined;
+
+  const result = await alunoService.listarAlunos(req.institutionId, { page, limit, busca });
+  return res.json({ status: 'success', ...result });
+}
+
+async function stats(req, res) {
+  const data = await alunoService.obterStats(req.institutionId);
+  return res.json({ status: 'success', data });
 }
 
 async function buscar(req, res) {
@@ -35,4 +44,4 @@ async function cancelar(req, res) {
   return res.json({ status: 'success', message: 'Aluno cancelado com sucesso' });
 }
 
-module.exports = { listar, buscar, criar, download, atualizar, cancelar };
+module.exports = { listar, buscar, stats, criar, download, atualizar, cancelar };

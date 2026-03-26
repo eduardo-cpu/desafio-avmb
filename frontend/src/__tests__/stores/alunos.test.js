@@ -25,7 +25,7 @@ beforeEach(() => {
 describe('useAlunosStore', () => {
   describe('listar()', () => {
     it('popula o array de alunos', async () => {
-      http.get.mockResolvedValueOnce({ data: { data: [mockAluno] } })
+      http.get.mockResolvedValueOnce({ data: { alunos: [mockAluno], total: 1, page: 1, limit: 20, totalPages: 1 } })
       const store = useAlunosStore()
       await store.listar()
       expect(store.alunos).toHaveLength(1)
@@ -38,7 +38,7 @@ describe('useAlunosStore', () => {
       const store = useAlunosStore()
       const promise = store.listar()
       expect(store.loading).toBe(true)
-      resolvePromise({ data: { data: [] } })
+      resolvePromise({ data: { alunos: [], total: 0, page: 1, limit: 20, totalPages: 0 } })
       await promise
       expect(store.loading).toBe(false)
     })
