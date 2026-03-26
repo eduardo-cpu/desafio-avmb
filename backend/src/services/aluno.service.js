@@ -3,23 +3,31 @@ const { gerarHash } = require('./hash.service');
 const { gerarXml } = require('./xml.service');
 const { dispararWebhook } = require('./webhook.service');
 const { validarAluno, validarCpf } = require('./validation.service');
+const serviceError = require('../utils/serviceError');
 
-function serviceError(message, status) {
-  return Object.assign(new Error(message), { status });
-}
+async function listarAlunos(instituicaoId, { page = 1, limit = 20, busca } = {}) {
+  const where = { instituicaoId, deletedAt: null };
 
-function isValidDate(str) {
-  if (!str) return false;
-  const d = new Date(str);
-  return !isNaN(d.getTime());
-}
+  if (busca) {
+    const buscaLimpa = busca.replace(/\D/g, '');
+    where.OR = [
+      { nome: { contains: busca, mode: 'insensitive' } },
+      ...(buscaLimpa.length > 0 ? [{ cpf: { contains: buscaLimpa } }] : []),
+    ];
+  }
 
-async function listarAlunos(instituicaoId) {
-  return prisma.aluno.findMany({
-    where: { instituicaoId, deletedAt: null },
-    include: { curso: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [alunos, total] = await Promise.all([
+    prisma.aluno.findMany({
+      where,
+      include: { curso: true },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.aluno.count({ where }),
+  ]);
+
+  return { alunos, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 async function buscarAluno(id, instituicaoId) {
@@ -35,64 +43,23 @@ async function buscarArquivoAluno(id, instituicaoId) {
   });
 }
 
-async function criarAluno({ nome, cpf, dtNascimento, urlCallback, curso }, instituicaoId) {
-  if (!nome || !cpf || !urlCallback || !curso) {
-    throw serviceError('Campos obrigatórios faltando', 400);
-  }
-  if (!isValidDate(curso.dt_inicio) || !isValidDate(curso.dt_fim)) {
-    throw serviceError('Datas do curso inválidas', 400);
-  }
+async function obterStats(instituicaoId) {
+  const where = { instituicaoId, deletedAt: null };
 
-  const cpfLimpo = cpf.replace(/\D/g, '');
+  const [total, certificados, pendentes, cancelados, recentes] = await Promise.all([
+    prisma.aluno.count({ where }),
+    prisma.aluno.count({ where: { ...where, status: 'CERTIFICADO' } }),
+    prisma.aluno.count({ where: { ...where, status: 'PENDENTE' } }),
+    prisma.aluno.count({ where: { instituicaoId, status: 'CANCELADO' } }),
+    prisma.aluno.findMany({
+      where,
+      include: { curso: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+  ]);
 
-  let cursoCriado = await prisma.curso.findFirst({ where: { codigo: curso.codigo } });
-  if (!cursoCriado) {
-    cursoCriado = await prisma.curso.create({
-      data: {
-        nome: curso.nome,
-        codigo: curso.codigo,
-        dtInicio: new Date(curso.dt_inicio),
-        dtFim: new Date(curso.dt_fim),
-        docente: curso.docente,
-      },
-    });
-  }
-
-  const existe = await prisma.aluno.findFirst({
-    where: { cpf: cpfLimpo, cursoId: cursoCriado.id, deletedAt: null },
-  });
-  if (existe) throw serviceError('Aluno já matriculado neste curso', 409);
-
-  return prisma.aluno.create({
-    data: {
-      nome,
-      cpf: cpfLimpo,
-      dtNascimento: dtNascimento ? new Date(dtNascimento) : null,
-      urlCallback,
-      instituicaoId,
-      cursoId: cursoCriado.id,
-    },
-    include: { curso: true },
-  });
-}
-
-async function atualizarAluno(id, instituicaoId, { nome, cpf, dtNascimento, urlCallback }) {
-  const aluno = await prisma.aluno.findFirst({ where: { id, instituicaoId, deletedAt: null } });
-  if (!aluno) throw serviceError('Aluno não encontrado', 404);
-  if (aluno.status === 'CANCELADO' || aluno.status === 'CERTIFICADO') {
-    throw serviceError('Aluno certificado ou cancelado não pode ser editado', 400);
-  }
-
-  return prisma.aluno.update({
-    where: { id },
-    data: {
-      ...(nome && { nome }),
-      ...(cpf && { cpf: cpf.replace(/\D/g, '') }),
-      ...(dtNascimento && { dtNascimento: new Date(dtNascimento) }),
-      ...(urlCallback && { urlCallback }),
-    },
-    include: { curso: true },
-  });
+  return { total, certificados, pendentes, cancelados, recentes };
 }
 
 async function cancelarAluno(id, instituicaoId) {
@@ -100,7 +67,10 @@ async function cancelarAluno(id, instituicaoId) {
   if (!aluno) throw serviceError('Aluno não encontrado', 404);
   if (aluno.status === 'CANCELADO') throw serviceError('Aluno já está cancelado', 400);
 
-  return prisma.aluno.update({ where: { id }, data: { status: 'CANCELADO' } });
+  return prisma.aluno.update({
+    where: { id },
+    data: { status: 'CANCELADO', deletedAt: new Date() },
+  });
 }
 
 async function certificarAluno(id, instituicaoId) {
@@ -112,12 +82,15 @@ async function certificarAluno(id, instituicaoId) {
   if (aluno.hash) throw serviceError('Hash já gerado para este aluno', 409);
 
   const hash = gerarHash(aluno);
-  const filePath = gerarXml({ ...aluno, hash });
 
-  const atualizado = await prisma.aluno.update({
-    where: { id: aluno.id },
-    data: { hash, filePath, status: 'CERTIFICADO' },
-    include: { curso: true },
+  const atualizado = await prisma.$transaction(async (tx) => {
+    const filePath = await gerarXml({ ...aluno, hash });
+
+    return tx.aluno.update({
+      where: { id: aluno.id },
+      data: { hash, filePath, status: 'CERTIFICADO' },
+      include: { curso: true },
+    });
   });
 
   dispararWebhook(atualizado).catch(() => {});
@@ -133,7 +106,10 @@ async function importarAlunos(lista, instituicaoId) {
     const indice = `item[${i}]`;
 
     const { valido, erros } = validarAluno(item);
-    if (!valido) { errosGerais.push({ indice, erros }); continue; }
+    if (!valido) {
+      errosGerais.push({ indice, erros });
+      continue;
+    }
 
     const cpfLimpo = item.cpf.replace(/\D/g, '');
     if (!validarCpf(cpfLimpo)) {
@@ -165,7 +141,10 @@ async function importarAlunos(lista, instituicaoId) {
         where: { cpf: cpfLimpo, cursoId: curso.id, deletedAt: null },
       });
       if (existe) {
-        errosGerais.push({ indice, erros: [{ campo: 'cpf', motivo: 'Aluno já cadastrado neste curso' }] });
+        errosGerais.push({
+          indice,
+          erros: [{ campo: 'cpf', motivo: 'Aluno já cadastrado neste curso' }],
+        });
         continue;
       }
 
@@ -193,8 +172,7 @@ module.exports = {
   listarAlunos,
   buscarAluno,
   buscarArquivoAluno,
-  criarAluno,
-  atualizarAluno,
+  obterStats,
   cancelarAluno,
   certificarAluno,
   importarAlunos,

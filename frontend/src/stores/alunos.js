@@ -5,28 +5,21 @@ import http from '@/api/http'
 export const useAlunosStore = defineStore('alunos', () => {
   const alunos = ref([])
   const loading = ref(false)
+  const pagination = ref({ page: 1, limit: 20, total: 0, totalPages: 0 })
 
-  async function listar() {
+  async function listar({ page, limit, busca } = {}) {
     loading.value = true
     try {
-      const { data } = await http.get('/alunos')
-      alunos.value = data.data
+      const params = {}
+      if (page) params.page = page
+      if (limit) params.limit = limit
+      if (busca) params.busca = busca
+      const { data } = await http.get('/alunos', { params })
+      alunos.value = data.alunos
+      pagination.value = { page: data.page, limit: data.limit, total: data.total, totalPages: data.totalPages }
     } finally {
       loading.value = false
     }
-  }
-
-  async function criar(payload) {
-    const { data } = await http.post('/alunos', payload)
-    alunos.value.unshift(data.data)
-    return data.data
-  }
-
-  async function atualizar(id, payload) {
-    const { data } = await http.put(`/alunos/${id}`, payload)
-    const index = alunos.value.findIndex(a => a.id === id)
-    if (index !== -1) alunos.value[index] = data.data
-    return data.data
   }
 
   async function cancelar(id) {
@@ -42,5 +35,5 @@ export const useAlunosStore = defineStore('alunos', () => {
     return data.data
   }
 
-  return { alunos, loading, listar, criar, atualizar, cancelar, gerarHash }
+  return { alunos, loading, pagination, listar, cancelar, gerarHash }
 })

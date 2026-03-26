@@ -25,7 +25,7 @@ beforeEach(() => {
 describe('useAlunosStore', () => {
   describe('listar()', () => {
     it('popula o array de alunos', async () => {
-      http.get.mockResolvedValueOnce({ data: { data: [mockAluno] } })
+      http.get.mockResolvedValueOnce({ data: { alunos: [mockAluno], total: 1, page: 1, limit: 20, totalPages: 1 } })
       const store = useAlunosStore()
       await store.listar()
       expect(store.alunos).toHaveLength(1)
@@ -38,7 +38,7 @@ describe('useAlunosStore', () => {
       const store = useAlunosStore()
       const promise = store.listar()
       expect(store.loading).toBe(true)
-      resolvePromise({ data: { data: [] } })
+      resolvePromise({ data: { alunos: [], total: 0, page: 1, limit: 20, totalPages: 0 } })
       await promise
       expect(store.loading).toBe(false)
     })
@@ -66,15 +66,4 @@ describe('useAlunosStore', () => {
     })
   })
 
-  describe('criar()', () => {
-    it('adiciona aluno no início da lista', async () => {
-      const novoAluno = { ...mockAluno, id: 2, nome: 'Maria' }
-      http.post.mockResolvedValueOnce({ data: { data: novoAluno } })
-      const store = useAlunosStore()
-      store.alunos = [mockAluno]
-      await store.criar({ nome: 'Maria', cpf: '000', curso: {} })
-      expect(store.alunos[0].nome).toBe('Maria')
-      expect(store.alunos).toHaveLength(2)
-    })
-  })
 })

@@ -9,16 +9,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function carregar() {
     loading.value = true
     try {
-      const { data } = await http.get('/alunos')
-      const alunos = data.data
-
-      stats.value = {
-        total: alunos.length,
-        certificados: alunos.filter(a => a.status === 'CERTIFICADO').length,
-        pendentes: alunos.filter(a => a.status === 'PENDENTE').length,
-        cancelados: alunos.filter(a => a.status === 'CANCELADO').length,
-        recentes: alunos.slice(0, 5),
-      }
+      const { data } = await http.get('/alunos/stats')
+      stats.value = data.data
     } finally {
       loading.value = false
     }

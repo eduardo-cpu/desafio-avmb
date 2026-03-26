@@ -11,10 +11,7 @@
           <Upload class="size-3.5 mr-1.5" />
           Importar
         </Button>
-        <Button size="sm" @click="abrirModal()">
-          <Plus class="size-3.5 mr-1.5" />
-          Novo Aluno
-        </Button>
+
       </div>
     </div>
 
@@ -37,7 +34,7 @@
                 <TableCell v-for="j in 5" :key="j"><Skeleton class="h-4 w-full" /></TableCell>
               </TableRow>
             </template>
-            <TableRow v-else-if="alunosFiltrados.length === 0">
+            <TableRow v-else-if="store.alunos.length === 0">
               <TableCell colspan="5" class="text-center py-12 text-muted-foreground">
                 <div class="flex flex-col items-center gap-2">
                   <Users class="size-8 opacity-30" />
@@ -47,7 +44,7 @@
             </TableRow>
             <TableRow
               v-else
-              v-for="aluno in alunosFiltrados"
+              v-for="aluno in store.alunos"
               :key="aluno.id"
               :class="aluno.status === 'CANCELADO' ? 'opacity-60' : ''"
             >
@@ -60,14 +57,6 @@
               <TableCell class="text-right">
                 <template v-if="aluno.status !== 'CANCELADO'">
                   <div class="flex items-center justify-end gap-1">
-                    <Button
-                      v-if="aluno.status !== 'CERTIFICADO'"
-                      variant="ghost" size="icon-sm"
-                      title="Editar"
-                      @click="abrirModal(aluno)"
-                    >
-                      <Pencil class="size-3.5" />
-                    </Button>
                     <Button
                       v-if="!aluno.hash"
                       variant="ghost" size="icon-sm"
@@ -102,140 +91,20 @@
           </TableBody>
         </Table>
       </CardContent>
+      <div v-if="store.pagination.totalPages > 1" class="flex items-center justify-between border-t px-4 py-3">
+        <p class="text-sm text-muted-foreground">
+          {{ store.pagination.total }} aluno(s) • Página {{ store.pagination.page }} de {{ store.pagination.totalPages }}
+        </p>
+        <div class="flex gap-1">
+          <Button variant="outline" size="sm" :disabled="store.pagination.page <= 1" @click="irParaPagina(store.pagination.page - 1)">
+            <ChevronLeft class="size-4" />
+          </Button>
+          <Button variant="outline" size="sm" :disabled="store.pagination.page >= store.pagination.totalPages" @click="irParaPagina(store.pagination.page + 1)">
+            <ChevronRight class="size-4" />
+          </Button>
+        </div>
+      </div>
     </Card>
-
-    <!-- Modal criar/editar -->
-    <Dialog v-model:open="modalAberto">
-      <DialogContent class="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{{ alunoEditando ? 'Editar Aluno' : 'Novo Aluno' }}</DialogTitle>
-          <DialogDescription>Preencha os dados do aluno abaixo</DialogDescription>
-        </DialogHeader>
-
-        <form @submit.prevent="salvar" class="space-y-4 py-2">
-          <div class="space-y-2">
-            <Label>Nome completo</Label>
-            <Input
-              v-model="form.nome"
-              :class="errosForm.nome ? 'border-destructive focus-visible:ring-destructive' : ''"
-              placeholder="João da Silva"
-            />
-            <p v-if="errosForm.nome" class="text-xs text-destructive flex items-center gap-1">
-              <AlertCircle class="size-3" />{{ errosForm.nome }}
-            </p>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label>CPF</Label>
-              <Input
-                v-model="form.cpf"
-                :class="errosForm.cpf ? 'border-destructive focus-visible:ring-destructive' : ''"
-                placeholder="000.000.000-00"
-              />
-              <p v-if="errosForm.cpf" class="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle class="size-3" />{{ errosForm.cpf }}
-              </p>
-            </div>
-            <div class="space-y-2">
-              <Label>Data de nascimento</Label>
-              <Input v-model="form.dtNascimento" type="date" :class="errosForm.dtNascimento ? 'border-red-500' : ''" />
-              <p v-if="errosForm.dtNascimento" class="text-xs text-red-500">{{ errosForm.dtNascimento }}</p>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <Label>URL de callback <span class="text-muted-foreground font-normal text-xs">(webhook)</span></Label>
-            <Input
-              v-model="form.urlCallback"
-              :class="errosForm.urlCallback ? 'border-destructive focus-visible:ring-destructive' : ''"
-              placeholder="https://..."
-            />
-            <p v-if="errosForm.urlCallback" class="text-xs text-destructive flex items-center gap-1">
-              <AlertCircle class="size-3" />{{ errosForm.urlCallback }}
-            </p>
-          </div>
-
-          <Separator />
-
-          <p class="text-sm font-semibold">Dados do Curso</p>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label>Nome do curso</Label>
-              <Input
-                v-model="form.curso.nome"
-                :class="errosForm['curso.nome'] ? 'border-destructive focus-visible:ring-destructive' : ''"
-                placeholder="Desenvolvimento Web"
-              />
-              <p v-if="errosForm['curso.nome']" class="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle class="size-3" />{{ errosForm['curso.nome'] }}
-              </p>
-            </div>
-            <div class="space-y-2">
-              <Label>Código</Label>
-              <Input
-                v-model="form.curso.codigo"
-                :class="errosForm['curso.codigo'] ? 'border-destructive focus-visible:ring-destructive' : ''"
-                placeholder="DEV-001"
-              />
-              <p v-if="errosForm['curso.codigo']" class="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle class="size-3" />{{ errosForm['curso.codigo'] }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label>Data início</Label>
-              <Input
-                v-model="form.curso.dt_inicio"
-                type="date"
-                :class="errosForm['curso.dt_inicio'] ? 'border-destructive focus-visible:ring-destructive' : ''"
-              />
-              <p v-if="errosForm['curso.dt_inicio']" class="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle class="size-3" />{{ errosForm['curso.dt_inicio'] }}
-              </p>
-            </div>
-            <div class="space-y-2">
-              <Label>Data fim</Label>
-              <Input
-                v-model="form.curso.dt_fim"
-                type="date"
-                :class="errosForm['curso.dt_fim'] ? 'border-destructive focus-visible:ring-destructive' : ''"
-              />
-              <p v-if="errosForm['curso.dt_fim']" class="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle class="size-3" />{{ errosForm['curso.dt_fim'] }}
-              </p>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <Label>Docente responsável</Label>
-            <Input
-              v-model="form.curso.docente"
-              :class="errosForm['curso.docente'] ? 'border-destructive focus-visible:ring-destructive' : ''"
-              placeholder="Prof. Carlos"
-            />
-            <p v-if="errosForm['curso.docente']" class="text-xs text-destructive flex items-center gap-1">
-              <AlertCircle class="size-3" />{{ errosForm['curso.docente'] }}
-            </p>
-          </div>
-
-          <div
-            v-if="erroForm"
-            class="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive"
-          >
-            <AlertCircle class="size-4 shrink-0" />
-            {{ erroForm }}
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" @click="modalAberto = false">Cancelar</Button>
-            <Button type="submit" :disabled="salvando">
-              <Loader2 v-if="salvando" class="size-4 animate-spin mr-1.5" />
-              {{ salvando ? 'Salvando...' : 'Salvar' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
 
     <!-- Dialog confirmação de ação crítica -->
     <Dialog v-model:open="confirmDialog.aberto">
@@ -257,20 +126,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, Upload, Pencil, Award, Download, Ban, Users, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { Search, Upload, Award, Download, Ban, Users, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import http from '@/api/http'
 import { useAlunosStore } from '@/stores/alunos'
 import { useToastStore } from '@/stores/toast'
 import { formatCpf, badgeVariant } from '@/utils/formatters'
-import { validarFormAluno } from '@/utils/validarAluno'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -280,21 +146,21 @@ const store = useAlunosStore()
 const toast = useToastStore()
 
 const busca = ref('')
-const modalAberto = ref(false)
-const alunoEditando = ref(null)
-const salvando = ref(false)
-const erroForm = ref('')
-const errosForm = reactive({})
 
-const alunosFiltrados = computed(() => {
-  const q = busca.value.toLowerCase().replace(/\D/g, '')
-  if (!busca.value.trim()) return store.alunos
-  return store.alunos.filter(a => {
-    const nomeMatch = a.nome?.toLowerCase().includes(busca.value.toLowerCase())
-    const cpfMatch = q && a.cpf?.replace(/\D/g, '').includes(q)
-    return nomeMatch || cpfMatch
-  })
+let debounceTimer = null
+
+function buscar() {
+  store.listar({ page: 1, busca: busca.value || undefined })
+}
+
+watch(busca, () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(buscar, 300)
 })
+
+function irParaPagina(page) {
+  store.listar({ page, busca: busca.value || undefined })
+}
 
 const confirmDialog = reactive({
   aberto: false,
@@ -305,62 +171,6 @@ const confirmDialog = reactive({
   loading: false,
   acao: () => {},
 })
-
-const formPadrao = () => ({
-  nome: '', cpf: '', dtNascimento: '', urlCallback: '',
-  curso: { nome: '', codigo: '', dt_inicio: '', dt_fim: '', docente: '' },
-})
-
-const form = reactive(formPadrao())
-
-function abrirModal(aluno = null) {
-  erroForm.value = ''
-  Object.keys(errosForm).forEach(k => delete errosForm[k])
-  alunoEditando.value = aluno
-  if (aluno) {
-    Object.assign(form, {
-      nome: aluno.nome,
-      cpf: aluno.cpf,
-      dtNascimento: aluno.dtNascimento?.split('T')[0] || '',
-      urlCallback: aluno.urlCallback,
-      curso: {
-        nome: aluno.curso?.nome || '',
-        codigo: aluno.curso?.codigo || '',
-        dt_inicio: aluno.curso?.dtInicio?.split('T')[0] || '',
-        dt_fim: aluno.curso?.dtFim?.split('T')[0] || '',
-        docente: aluno.curso?.docente || '',
-      },
-    })
-  } else {
-    Object.assign(form, formPadrao())
-  }
-  modalAberto.value = true
-}
-
-async function salvar() {
-  erroForm.value = ''
-  Object.keys(errosForm).forEach(k => delete errosForm[k])
-  const erros = validarFormAluno(form)
-  if (Object.keys(erros).length) {
-    Object.assign(errosForm, erros)
-    return
-  }
-  salvando.value = true
-  try {
-    if (alunoEditando.value) {
-      await store.atualizar(alunoEditando.value.id, form)
-      toast.success('Aluno atualizado com sucesso')
-    } else {
-      await store.criar(form)
-      toast.success('Aluno cadastrado com sucesso')
-    }
-    modalAberto.value = false
-  } catch (e) {
-    erroForm.value = e.response?.data?.message || 'Erro ao salvar. Tente novamente.'
-  } finally {
-    salvando.value = false
-  }
-}
 
 function confirmarCancelar(aluno) {
   Object.assign(confirmDialog, {
