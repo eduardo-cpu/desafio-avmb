@@ -30,6 +30,14 @@ export function validarFormAluno(form) {
   else if (!validarCpf(form.cpf))
     e.cpf = 'CPF inválido'
 
+  if (form.dtNascimento) {
+    const nascimento = new Date(form.dtNascimento)
+    if (isNaN(nascimento.getTime()))
+      e.dtNascimento = 'Data de nascimento inválida'
+    else if (nascimento >= new Date())
+      e.dtNascimento = 'Data de nascimento não pode ser no futuro'
+  }
+
   if (!form.urlCallback || form.urlCallback.trim().length < 3)
     e.urlCallback = 'URL de callback é obrigatória'
   else if (!isUrl(form.urlCallback))

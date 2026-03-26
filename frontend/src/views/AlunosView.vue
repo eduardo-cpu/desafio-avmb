@@ -138,7 +138,8 @@
             </div>
             <div class="space-y-2">
               <Label>Data de nascimento</Label>
-              <Input v-model="form.dtNascimento" type="date" />
+              <Input v-model="form.dtNascimento" type="date" :class="errosForm.dtNascimento ? 'border-red-500' : ''" />
+              <p v-if="errosForm.dtNascimento" class="text-xs text-red-500">{{ errosForm.dtNascimento }}</p>
             </div>
           </div>
           <div class="space-y-2">

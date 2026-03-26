@@ -97,6 +97,26 @@ describe('validarFormAluno', () => {
     })
   })
 
+  describe('dtNascimento', () => {
+    it('sem erro quando dtNascimento está vazio (campo opcional)', () => {
+      const form = formValido()
+      form.dtNascimento = ''
+      expect(validarFormAluno(form)).not.toHaveProperty('dtNascimento')
+    })
+
+    it('erro para data de nascimento no futuro', () => {
+      const form = formValido()
+      form.dtNascimento = '2099-01-01'
+      expect(validarFormAluno(form)).toHaveProperty('dtNascimento')
+    })
+
+    it('sem erro para data de nascimento válida no passado', () => {
+      const form = formValido()
+      form.dtNascimento = '1990-05-20'
+      expect(validarFormAluno(form)).not.toHaveProperty('dtNascimento')
+    })
+  })
+
   describe('curso.codigo', () => {
     it('erro para código com menos de 2 caracteres', () => {
       const form = formValido()
