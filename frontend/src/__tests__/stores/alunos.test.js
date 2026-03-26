@@ -66,15 +66,4 @@ describe('useAlunosStore', () => {
     })
   })
 
-  describe('criar()', () => {
-    it('adiciona aluno no início da lista', async () => {
-      const novoAluno = { ...mockAluno, id: 2, nome: 'Maria' }
-      http.post.mockResolvedValueOnce({ data: { data: novoAluno } })
-      const store = useAlunosStore()
-      store.alunos = [mockAluno]
-      await store.criar({ nome: 'Maria', cpf: '000', curso: {} })
-      expect(store.alunos[0].nome).toBe('Maria')
-      expect(store.alunos).toHaveLength(2)
-    })
-  })
 })

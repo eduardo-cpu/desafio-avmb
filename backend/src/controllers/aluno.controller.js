@@ -21,11 +21,6 @@ async function buscar(req, res) {
   return res.json({ status: 'success', data: aluno });
 }
 
-async function criar(req, res) {
-  const aluno = await alunoService.criarAluno(req.body, req.institutionId);
-  return res.status(201).json({ status: 'success', data: aluno });
-}
-
 async function download(req, res) {
   const aluno = await alunoService.buscarArquivoAluno(req.params.id, req.institutionId);
   if (!aluno?.filePath || !fs.existsSync(aluno.filePath)) {
@@ -34,14 +29,9 @@ async function download(req, res) {
   res.download(aluno.filePath, `certificado-${aluno.id}.xml`);
 }
 
-async function atualizar(req, res) {
-  const aluno = await alunoService.atualizarAluno(req.params.id, req.institutionId, req.body);
-  return res.json({ status: 'success', data: aluno });
-}
-
 async function cancelar(req, res) {
   await alunoService.cancelarAluno(req.params.id, req.institutionId);
   return res.json({ status: 'success', message: 'Aluno cancelado com sucesso' });
 }
 
-module.exports = { listar, buscar, stats, criar, download, atualizar, cancelar };
+module.exports = { listar, buscar, stats, download, cancelar };

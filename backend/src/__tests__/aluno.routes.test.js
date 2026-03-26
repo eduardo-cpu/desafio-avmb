@@ -90,20 +90,6 @@ const ALUNO_BASE = {
   },
 };
 
-const PAYLOAD_CRIAR = {
-  nome: 'Eduardo Santos',
-  cpf: '52998224725',
-  dtNascimento: '1995-01-15',
-  urlCallback: 'https://webhook.site/teste',
-  curso: {
-    nome: 'Node.js Avançado',
-    codigo: 'NODE-01',
-    dt_inicio: '2026-01-01',
-    dt_fim: '2026-06-30',
-    docente: 'Prof. Silva',
-  },
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
   // Defaults seguros para evitar chamadas reais ao banco
@@ -184,88 +170,6 @@ describe('GET /api/alunos/:id', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.status).toBe('error');
-  });
-});
-
-// ─── Criar Aluno ─────────────────────────────────────────────────────────────
-
-describe('POST /api/alunos', () => {
-  test('201 - cria aluno com sucesso', async () => {
-    mockPrisma.curso.create.mockResolvedValue(ALUNO_BASE.curso);
-    mockPrisma.aluno.create.mockResolvedValue(ALUNO_BASE);
-
-    const res = await request(app).post('/api/alunos').set(AUTH).send(PAYLOAD_CRIAR);
-
-    expect(res.status).toBe(201);
-    expect(res.body.status).toBe('success');
-    expect(res.body.data.nome).toBe(PAYLOAD_CRIAR.nome);
-  });
-
-  test('400 - campos obrigatórios faltando', async () => {
-    const res = await request(app).post('/api/alunos').set(AUTH).send({ nome: 'Eduardo Santos' }); // sem cpf, urlCallback, curso
-
-    expect(res.status).toBe(400);
-    expect(res.body.status).toBe('error');
-  });
-
-  test('400 - datas do curso inválidas', async () => {
-    const payloadInvalido = {
-      ...PAYLOAD_CRIAR,
-      curso: { ...PAYLOAD_CRIAR.curso, dt_inicio: 'data-invalida' },
-    };
-
-    const res = await request(app).post('/api/alunos').set(AUTH).send(payloadInvalido);
-
-    expect(res.status).toBe(400);
-    expect(res.body.message).toContain('Datas');
-  });
-
-  test('409 - aluno já matriculado no mesmo curso', async () => {
-    mockPrisma.curso.findFirst.mockResolvedValue(ALUNO_BASE.curso); // curso já existe
-    mockPrisma.aluno.findFirst.mockResolvedValue(ALUNO_BASE); // aluno já matriculado
-
-    const res = await request(app).post('/api/alunos').set(AUTH).send(PAYLOAD_CRIAR);
-
-    expect(res.status).toBe(409);
-    expect(res.body.status).toBe('error');
-  });
-});
-
-// ─── Atualizar Aluno ──────────────────────────────────────────────────────────
-
-describe('PUT /api/alunos/:id', () => {
-  test('200 - atualiza aluno com sucesso', async () => {
-    mockPrisma.aluno.findFirst.mockResolvedValue(ALUNO_BASE);
-    mockPrisma.aluno.update.mockResolvedValue({ ...ALUNO_BASE, nome: 'Nome Atualizado' });
-
-    const res = await request(app)
-      .put('/api/alunos/aluno-1')
-      .set(AUTH)
-      .send({ nome: 'Nome Atualizado' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.nome).toBe('Nome Atualizado');
-  });
-
-  test('400 - aluno certificado não pode ser editado', async () => {
-    mockPrisma.aluno.findFirst.mockResolvedValue({ ...ALUNO_BASE, status: 'CERTIFICADO' });
-
-    const res = await request(app)
-      .put('/api/alunos/aluno-1')
-      .set(AUTH)
-      .send({ nome: 'Nome Atualizado' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.status).toBe('error');
-  });
-
-  test('404 - aluno não encontrado', async () => {
-    const res = await request(app)
-      .put('/api/alunos/id-inexistente')
-      .set(AUTH)
-      .send({ nome: 'Nome' });
-
-    expect(res.status).toBe(404);
   });
 });
 

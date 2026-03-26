@@ -5,12 +5,6 @@ const { dispararWebhook } = require('./webhook.service');
 const { validarAluno, validarCpf } = require('./validation.service');
 const serviceError = require('../utils/serviceError');
 
-function isValidDate(str) {
-  if (!str) return false;
-  const d = new Date(str);
-  return !isNaN(d.getTime());
-}
-
 async function listarAlunos(instituicaoId, { page = 1, limit = 20, busca } = {}) {
   const where = { instituicaoId, deletedAt: null };
 
@@ -66,75 +60,6 @@ async function obterStats(instituicaoId) {
   ]);
 
   return { total, certificados, pendentes, cancelados, recentes };
-}
-
-async function criarAluno({ nome, cpf, dtNascimento, urlCallback, curso }, instituicaoId) {
-  if (!nome || !cpf || !urlCallback || !curso) {
-    throw serviceError('Campos obrigatórios faltando', 400);
-  }
-  if (!isValidDate(curso.dt_inicio) || !isValidDate(curso.dt_fim)) {
-    throw serviceError('Datas do curso inválidas', 400);
-  }
-
-  const cpfLimpo = cpf.replace(/\D/g, '');
-
-  if (!validarCpf(cpfLimpo)) {
-    throw serviceError('CPF inválido', 400);
-  }
-
-  let cursoCriado = await prisma.curso.findFirst({
-    where: {
-      codigo: curso.codigo,
-      alunos: { some: { instituicaoId } },
-    },
-  });
-  if (!cursoCriado) {
-    cursoCriado = await prisma.curso.create({
-      data: {
-        nome: curso.nome,
-        codigo: curso.codigo,
-        dtInicio: new Date(curso.dt_inicio),
-        dtFim: new Date(curso.dt_fim),
-        docente: curso.docente,
-      },
-    });
-  }
-
-  const existe = await prisma.aluno.findFirst({
-    where: { cpf: cpfLimpo, cursoId: cursoCriado.id, deletedAt: null },
-  });
-  if (existe) throw serviceError('Aluno já matriculado neste curso', 409);
-
-  return prisma.aluno.create({
-    data: {
-      nome,
-      cpf: cpfLimpo,
-      dtNascimento: dtNascimento ? new Date(dtNascimento) : null,
-      urlCallback,
-      instituicaoId,
-      cursoId: cursoCriado.id,
-    },
-    include: { curso: true },
-  });
-}
-
-async function atualizarAluno(id, instituicaoId, { nome, cpf, dtNascimento, urlCallback }) {
-  const aluno = await prisma.aluno.findFirst({ where: { id, instituicaoId, deletedAt: null } });
-  if (!aluno) throw serviceError('Aluno não encontrado', 404);
-  if (aluno.status === 'CANCELADO' || aluno.status === 'CERTIFICADO') {
-    throw serviceError('Aluno certificado ou cancelado não pode ser editado', 400);
-  }
-
-  return prisma.aluno.update({
-    where: { id },
-    data: {
-      ...(nome && { nome }),
-      ...(cpf && { cpf: cpf.replace(/\D/g, '') }),
-      ...(dtNascimento && { dtNascimento: new Date(dtNascimento) }),
-      ...(urlCallback && { urlCallback }),
-    },
-    include: { curso: true },
-  });
 }
 
 async function cancelarAluno(id, instituicaoId) {
@@ -248,8 +173,6 @@ module.exports = {
   buscarAluno,
   buscarArquivoAluno,
   obterStats,
-  criarAluno,
-  atualizarAluno,
   cancelarAluno,
   certificarAluno,
   importarAlunos,

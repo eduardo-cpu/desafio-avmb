@@ -22,19 +22,6 @@ export const useAlunosStore = defineStore('alunos', () => {
     }
   }
 
-  async function criar(payload) {
-    const { data } = await http.post('/alunos', payload)
-    alunos.value.unshift(data.data)
-    return data.data
-  }
-
-  async function atualizar(id, payload) {
-    const { data } = await http.put(`/alunos/${id}`, payload)
-    const index = alunos.value.findIndex(a => a.id === id)
-    if (index !== -1) alunos.value[index] = data.data
-    return data.data
-  }
-
   async function cancelar(id) {
     await http.patch(`/alunos/${id}/cancelar`)
     const index = alunos.value.findIndex(a => a.id === id)
@@ -48,5 +35,5 @@ export const useAlunosStore = defineStore('alunos', () => {
     return data.data
   }
 
-  return { alunos, loading, pagination, listar, criar, atualizar, cancelar, gerarHash }
+  return { alunos, loading, pagination, listar, cancelar, gerarHash }
 })

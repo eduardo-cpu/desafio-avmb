@@ -5,7 +5,9 @@
         <CardTitle>JSON de Importação</CardTitle>
         <CardDescription>
           Aceita objeto único ou array de alunos. Campos obrigatórios:
-          <code class="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">nome, cpf, url_callback, curso</code>
+          <code class="text-xs bg-muted px-1.5 py-0.5 rounded font-mono"
+            >nome, cpf, url_callback, curso</code
+          >
         </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
@@ -14,10 +16,10 @@
             v-model="json"
             rows="14"
             spellcheck="false"
-            placeholder='[{ "nome": "João Silva", "cpf": "123.456.789-09", "url_callback": "https://...", "curso": { ... } }]'
+            :placeholder="PLACEHOLDER"
             :class="[
               'w-full font-mono text-sm rounded-md p-3 bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring transition-colors',
-              erroJson ? 'border border-destructive' : 'border border-input'
+              erroJson ? 'border border-destructive' : 'border border-input',
             ]"
           />
         </div>
@@ -36,9 +38,7 @@
             <Upload v-else class="size-4 mr-1.5" />
             {{ importando ? 'Importando...' : 'Importar' }}
           </Button>
-          <Button variant="outline" @click="limpar" :disabled="importando">
-            Limpar
-          </Button>
+          <Button variant="outline" @click="limpar" :disabled="importando"> Limpar </Button>
           <Button variant="ghost" class="ml-auto text-xs" @click="usarExemplo">
             Usar exemplo
           </Button>
@@ -52,7 +52,9 @@
         <div class="flex items-center gap-2">
           <div v-if="resultado.importados > 0" class="flex items-center gap-2 text-green-600">
             <CheckCircle2 class="size-5" />
-            <CardTitle class="text-green-700">{{ resultado.importados }} aluno(s) importado(s)</CardTitle>
+            <CardTitle class="text-green-700"
+              >{{ resultado.importados }} aluno(s) importado(s)</CardTitle
+            >
           </div>
           <div v-else class="flex items-center gap-2 text-destructive">
             <XCircle class="size-5" />
@@ -99,7 +101,9 @@
                 <TableCell class="font-medium">{{ aluno.nome }}</TableCell>
                 <TableCell class="font-mono text-sm">{{ formatCpf(aluno.cpf) }}</TableCell>
                 <TableCell>{{ aluno.curso?.nome }}</TableCell>
-                <TableCell><Badge variant="secondary">{{ aluno.status }}</Badge></TableCell>
+                <TableCell
+                  ><Badge variant="secondary">{{ aluno.status }}</Badge></TableCell
+                >
               </TableRow>
             </TableBody>
           </Table>
@@ -124,7 +128,14 @@ import { formatCpf } from '@/utils/formatters'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const router = useRouter()
 const toast = useToastStore()
@@ -134,21 +145,41 @@ const erroJson = ref('')
 const importando = ref(false)
 const resultado = ref(null)
 
-const EXEMPLO = JSON.stringify([
-  {
-    nome: 'João da Silva',
-    cpf: '529.982.247-25',
-    dt_nascimento: '1995-06-15',
-    url_callback: 'https://webhook.site/exemplo',
-    curso: {
-      nome: 'Desenvolvimento Web',
-      codigo: 'DEV-001',
-      dt_inicio: '2025-01-01',
-      dt_fim: '2025-06-30',
-      docente: 'Prof. Ana Souza',
+const PLACEHOLDER =
+  '[\n' +
+  '{\n' +
+  '  "nome": "João Silva",\n' +
+  '  "cpf": "123.456.789-09",\n' +
+  '  "url_callback": "https://...",\n' +
+  '  "curso": {\n' +
+  '    "nome": "Desenvolvimento Web",\n' +
+  '    "codigo": "DEV-001",\n' +
+  '    "dt_inicio": "2025-01-01",\n' +
+  '    "dt_fim": "2025-06-30",\n' +
+  '    "docente": "Prof. Ana Souza"\n' +
+  '  }\n' +
+  '}\n' +
+  ']'
+
+const EXEMPLO = JSON.stringify(
+  [
+    {
+      nome: 'João da Silva',
+      cpf: '529.982.247-25',
+      dt_nascimento: '1995-06-15',
+      url_callback: 'https://webhook.site/exemplo',
+      curso: {
+        nome: 'Desenvolvimento Web',
+        codigo: 'DEV-001',
+        dt_inicio: '2025-01-01',
+        dt_fim: '2025-06-30',
+        docente: 'Prof. Ana Souza',
+      },
     },
-  },
-], null, 2)
+  ],
+  null,
+  2,
+)
 
 function usarExemplo() {
   json.value = EXEMPLO
