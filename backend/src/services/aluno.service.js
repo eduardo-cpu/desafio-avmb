@@ -4,6 +4,23 @@ const { gerarXml } = require('./xml.service');
 const { dispararWebhook } = require('./webhook.service');
 const { validarAluno, validarCpf } = require('./validation.service');
 const serviceError = require('../utils/serviceError');
+const { setTimeout: delay } = require('timers/promises');
+
+const IMPORT_PROCESS_CHUNK_SIZE = Number.parseInt(
+  process.env.IMPORT_PROCESS_CHUNK_SIZE || '100',
+  10,
+);
+
+function* chunkList(list, chunkSize) {
+  for (let offset = 0; offset < list.length; offset += chunkSize) {
+    yield {
+      offset,
+      chunk: list.slice(offset, offset + chunkSize),
+    };
+  }
+}
+
+const yieldToEventLoop = () => delay(0);
 
 async function listarAlunos(instituicaoId, { page = 1, limit = 20, busca } = {}) {
   const where = { instituicaoId, deletedAt: null };
@@ -101,67 +118,74 @@ async function importarAlunos(lista, instituicaoId) {
   const resultados = [];
   const errosGerais = [];
 
-  for (let i = 0; i < lista.length; i++) {
-    const item = lista[i];
-    const indice = `item[${i}]`;
+  for (const { offset, chunk } of chunkList(lista, IMPORT_PROCESS_CHUNK_SIZE)) {
+    for (let j = 0; j < chunk.length; j++) {
+      const item = chunk[j];
+      const i = offset + j;
+      const indice = `item[${i}]`;
 
-    const { valido, erros } = validarAluno(item);
-    if (!valido) {
-      errosGerais.push({ indice, erros });
-      continue;
-    }
-
-    const cpfLimpo = item.cpf.replace(/\D/g, '');
-    if (!validarCpf(cpfLimpo)) {
-      errosGerais.push({ indice, erros: [{ campo: 'cpf', motivo: 'CPF inválido' }] });
-      continue;
-    }
-
-    try {
-      let curso = await prisma.curso.findFirst({
-        where: {
-          codigo: item.curso.codigo,
-          alunos: { some: { instituicaoId } },
-        },
-      });
-
-      if (!curso) {
-        curso = await prisma.curso.create({
-          data: {
-            nome: item.curso.nome,
-            codigo: item.curso.codigo,
-            dtInicio: new Date(item.curso.dt_inicio),
-            dtFim: new Date(item.curso.dt_fim),
-            docente: item.curso.docente,
-          },
-        });
-      }
-
-      const existe = await prisma.aluno.findFirst({
-        where: { cpf: cpfLimpo, cursoId: curso.id, deletedAt: null },
-      });
-      if (existe) {
-        errosGerais.push({
-          indice,
-          erros: [{ campo: 'cpf', motivo: 'Aluno já cadastrado neste curso' }],
-        });
+      const { valido, erros } = validarAluno(item);
+      if (!valido) {
+        errosGerais.push({ indice, erros });
         continue;
       }
 
-      const aluno = await prisma.aluno.create({
-        data: {
-          nome: item.nome,
-          cpf: cpfLimpo,
-          dtNascimento: item.dt_nascimento ? new Date(item.dt_nascimento) : null,
-          urlCallback: item.url_callback,
-          instituicaoId,
-          cursoId: curso.id,
-        },
-        include: { curso: true },
-      });
-      resultados.push(aluno);
-    } catch (e) {
-      errosGerais.push({ indice, erros: [{ campo: 'geral', motivo: e.message }] });
+      const cpfLimpo = item.cpf.replace(/\D/g, '');
+      if (!validarCpf(cpfLimpo)) {
+        errosGerais.push({ indice, erros: [{ campo: 'cpf', motivo: 'CPF inválido' }] });
+        continue;
+      }
+
+      try {
+        let curso = await prisma.curso.findFirst({
+          where: {
+            codigo: item.curso.codigo,
+            alunos: { some: { instituicaoId } },
+          },
+        });
+
+        if (!curso) {
+          curso = await prisma.curso.create({
+            data: {
+              nome: item.curso.nome,
+              codigo: item.curso.codigo,
+              dtInicio: new Date(item.curso.dt_inicio),
+              dtFim: new Date(item.curso.dt_fim),
+              docente: item.curso.docente,
+            },
+          });
+        }
+
+        const existe = await prisma.aluno.findFirst({
+          where: { cpf: cpfLimpo, cursoId: curso.id, deletedAt: null },
+        });
+        if (existe) {
+          errosGerais.push({
+            indice,
+            erros: [{ campo: 'cpf', motivo: 'Aluno já cadastrado neste curso' }],
+          });
+          continue;
+        }
+
+        const aluno = await prisma.aluno.create({
+          data: {
+            nome: item.nome,
+            cpf: cpfLimpo,
+            dtNascimento: item.dt_nascimento ? new Date(item.dt_nascimento) : null,
+            urlCallback: item.url_callback,
+            instituicaoId,
+            cursoId: curso.id,
+          },
+          include: { curso: true },
+        });
+        resultados.push(aluno);
+      } catch (e) {
+        errosGerais.push({ indice, erros: [{ campo: 'geral', motivo: e.message }] });
+      }
+    }
+
+    if (offset + chunk.length < lista.length) {
+      await yieldToEventLoop();
     }
   }
 
