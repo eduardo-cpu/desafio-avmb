@@ -36,7 +36,7 @@
           <Button @click="importar" :disabled="importando || !json.trim()">
             <Loader2 v-if="importando" class="size-4 animate-spin mr-1.5" />
             <Upload v-else class="size-4 mr-1.5" />
-            {{ importando ? 'Importando...' : 'Importar' }}
+            {{ importando ? botaoImportacaoLabel : 'Importar' }}
           </Button>
           <Button variant="outline" @click="limpar" :disabled="importando"> Limpar </Button>
           <Button variant="ghost" class="ml-auto text-xs" @click="usarExemplo">
@@ -46,15 +46,16 @@
       </CardContent>
     </Card>
 
-    <!-- Resultado -->
     <Card v-if="resultado">
       <CardHeader>
         <div class="flex items-center gap-2">
-          <div v-if="resultado.importados > 0" class="flex items-center gap-2 text-green-600">
+          <div v-if="resultado.fase === 'queued' || resultado.fase === 'processing'" class="flex items-center gap-2 text-amber-600">
+            <Loader2 class="size-5 animate-spin" />
+            <CardTitle class="text-amber-700">Importação em andamento</CardTitle>
+          </div>
+          <div v-else-if="resultado.importados > 0" class="flex items-center gap-2 text-green-600">
             <CheckCircle2 class="size-5" />
-            <CardTitle class="text-green-700"
-              >{{ resultado.importados }} aluno(s) importado(s)</CardTitle
-            >
+            <CardTitle class="text-green-700">{{ resultado.importados }} aluno(s) importado(s)</CardTitle>
           </div>
           <div v-else class="flex items-center gap-2 text-destructive">
             <XCircle class="size-5" />
@@ -64,7 +65,29 @@
       </CardHeader>
 
       <CardContent class="space-y-4">
-        <!-- Erros de validação -->
+        <div v-if="resultado.protocolo || resultado.statusFila" class="grid gap-3 rounded-md border border-border bg-muted/30 p-4 md:grid-cols-2">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-muted-foreground">Protocolo</p>
+            <p class="font-mono text-sm">{{ resultado.protocolo || '—' }}</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-muted-foreground">Status</p>
+            <Badge variant="secondary">{{ statusLabel(resultado.statusFila || resultado.fase) }}</Badge>
+          </div>
+          <div v-if="resultado.posicaoFila !== undefined">
+            <p class="text-xs uppercase tracking-wide text-muted-foreground">Posição na fila</p>
+            <p class="text-sm">{{ resultado.posicaoFila }}</p>
+          </div>
+          <div v-if="resultado.total !== undefined">
+            <p class="text-xs uppercase tracking-wide text-muted-foreground">Total enviado</p>
+            <p class="text-sm">{{ resultado.total }}</p>
+          </div>
+        </div>
+
+        <div v-if="resultado.mensagem" class="text-sm text-muted-foreground">
+          {{ resultado.mensagem }}
+        </div>
+
         <div v-if="resultado.erros?.length" class="space-y-2">
           <p class="text-sm font-semibold text-destructive">
             {{ resultado.erros.length }} item(s) com erro de validação:
@@ -84,7 +107,6 @@
           </div>
         </div>
 
-        <!-- Importados com sucesso -->
         <div v-if="resultado.data?.length">
           <p class="text-sm font-semibold mb-2">Importados com sucesso:</p>
           <Table>
@@ -101,9 +123,7 @@
                 <TableCell class="font-medium">{{ aluno.nome }}</TableCell>
                 <TableCell class="font-mono text-sm">{{ formatCpf(aluno.cpf) }}</TableCell>
                 <TableCell>{{ aluno.curso?.nome }}</TableCell>
-                <TableCell
-                  ><Badge variant="secondary">{{ aluno.status }}</Badge></TableCell
-                >
+                <TableCell><Badge variant="secondary">{{ aluno.status }}</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -119,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Upload, AlertCircle, Loader2, CheckCircle2, XCircle } from 'lucide-vue-next'
 import http from '@/api/http'
@@ -137,6 +157,14 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+const IMPORT_STATUS_POLL_MS = 1000
+const IMPORT_STATUS_MAX_POLLS = 180
+
+function normalizarStatusUrl(statusUrl) {
+  if (statusUrl == null || statusUrl === "") return statusUrl
+  return statusUrl.startsWith("/api/") ? statusUrl.slice(4) : statusUrl
+}
+
 const router = useRouter()
 const toast = useToastStore()
 
@@ -144,6 +172,12 @@ const json = ref('')
 const erroJson = ref('')
 const importando = ref(false)
 const resultado = ref(null)
+
+const botaoImportacaoLabel = computed(() => {
+  if (resultado.value?.fase === 'queued') return 'Aguardando fila...'
+  if (resultado.value?.fase === 'processing') return 'Processando...'
+  return 'Importando...'
+})
 
 const PLACEHOLDER =
   '[\n' +
@@ -187,6 +221,53 @@ function usarExemplo() {
   resultado.value = null
 }
 
+function statusLabel(status) {
+  if (status === 'queued' || status === 'pending') return 'Na fila'
+  if (status === 'processing') return 'Processando'
+  if (status === 'completed') return 'Concluída'
+  if (status === 'failed') return 'Falhou'
+  return status || 'Desconhecido'
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function acompanharImportacao(statusUrl, protocolo, total) {
+  for (let tentativa = 0; tentativa < IMPORT_STATUS_MAX_POLLS; tentativa++) {
+    const { data } = await http.get(normalizarStatusUrl(statusUrl))
+    const job = data.data
+
+    resultado.value = {
+      fase: job.status === 'completed' || job.status === 'failed' ? 'completed' : job.status,
+      statusFila: job.status,
+      protocolo,
+      posicaoFila: job.posicaoFila,
+      total,
+      importados: job.importados ?? 0,
+      erros: [],
+      data: [],
+      mensagem: job.message,
+    }
+
+    if (job.status === 'completed') {
+      toast.success(`${job.importados ?? 0} aluno(s) importado(s) com sucesso`)
+      return
+    }
+
+    if (job.status === 'failed') {
+      erroJson.value = job.message || 'A importação falhou durante o processamento.'
+      toast.error(erroJson.value)
+      return
+    }
+
+    await sleep(IMPORT_STATUS_POLL_MS)
+  }
+
+  erroJson.value = 'A importação foi enfileirada, mas a consulta de status expirou.'
+  toast.info('A importação continua em andamento. Consulte novamente em instantes.')
+}
+
 async function importar() {
   erroJson.value = ''
   resultado.value = null
@@ -202,6 +283,23 @@ async function importar() {
   importando.value = true
   try {
     const { data } = await http.post('/alunos/import', payload)
+
+    if (data.status === 'accepted' && data.statusUrl) {
+      resultado.value = {
+        fase: 'queued',
+        statusFila: 'pending',
+        protocolo: data.protocolo,
+        posicaoFila: data.posicaoFila,
+        total: data.total,
+        importados: 0,
+        erros: [],
+        data: [],
+        mensagem: data.message,
+      }
+      await acompanharImportacao(data.statusUrl, data.protocolo, data.total)
+      return
+    }
+
     resultado.value = data
     if (data.importados > 0) {
       toast.success(`${data.importados} aluno(s) importado(s) com sucesso`)
@@ -209,7 +307,17 @@ async function importar() {
   } catch (e) {
     const body = e.response?.data
     if (body?.erros) {
-      resultado.value = { importados: 0, erros: body.erros, data: [] }
+      resultado.value = {
+        fase: 'completed',
+        statusFila: 'failed',
+        protocolo: null,
+        posicaoFila: undefined,
+        total: Array.isArray(payload) ? payload.length : 1,
+        importados: 0,
+        erros: body.erros,
+        data: [],
+        mensagem: body.message || 'Falha de validação na importação.',
+      }
     } else {
       erroJson.value = body?.message || 'Erro ao importar. Tente novamente.'
     }
