@@ -50,4 +50,10 @@ async function autenticar({ email, senha }) {
   };
 }
 
-module.exports = { registrar, autenticar };
+async function me(institutionId) {
+  const instituicao = await prisma.instituicao.findUnique({ where: { id: institutionId } });
+  if (!instituicao) throw serviceError('Instituição não encontrada', 401);
+  return { id: instituicao.id, nome: instituicao.nome, email: instituicao.email };
+}
+
+module.exports = { registrar, autenticar, me };

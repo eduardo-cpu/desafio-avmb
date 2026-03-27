@@ -36,7 +36,18 @@ async function listarAlunos(instituicaoId, { page = 1, limit = 20, busca } = {})
   const [alunos, total] = await Promise.all([
     prisma.aluno.findMany({
       where,
-      include: { curso: true },
+      select: {
+        id: true,
+        nome: true,
+        cpf: true,
+        dtNascimento: true,
+        status: true,
+        hash: true,
+        createdAt: true,
+        curso: {
+          select: { id: true, nome: true, codigo: true, dtInicio: true, dtFim: true, docente: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -70,7 +81,18 @@ async function obterStats(instituicaoId) {
     prisma.aluno.count({ where: { instituicaoId, status: 'CANCELADO' } }),
     prisma.aluno.findMany({
       where,
-      include: { curso: true },
+      select: {
+        id: true,
+        nome: true,
+        cpf: true,
+        dtNascimento: true,
+        status: true,
+        hash: true,
+        createdAt: true,
+        curso: {
+          select: { id: true, nome: true, codigo: true, dtInicio: true, dtFim: true, docente: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
@@ -106,11 +128,22 @@ async function certificarAluno(id, instituicaoId) {
     return tx.aluno.update({
       where: { id: aluno.id },
       data: { hash, filePath, status: 'CERTIFICADO' },
-      include: { curso: true },
+      select: {
+        id: true,
+        nome: true,
+        cpf: true,
+        dtNascimento: true,
+        status: true,
+        hash: true,
+        createdAt: true,
+        curso: {
+          select: { id: true, nome: true, codigo: true, dtInicio: true, dtFim: true, docente: true },
+        },
+      },
     });
   });
 
-  dispararWebhook(atualizado).catch(() => {});
+  dispararWebhook({ ...aluno, hash }).catch(() => {});
   return atualizado;
 }
 

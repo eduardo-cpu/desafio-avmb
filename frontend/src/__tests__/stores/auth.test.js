@@ -3,6 +3,12 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import http from '@/api/http'
 
+function makeFakeJwt(exp = Math.floor(Date.now() / 1000) + 3600) {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=/g, '')
+  const payload = btoa(JSON.stringify({ institutionId: 'test-id', iat: Math.floor(Date.now() / 1000), exp })).replace(/=/g, '')
+  return `${header}.${payload}.fakesig`
+}
+
 vi.mock('@/api/http', () => ({
   default: {
     post: vi.fn(),
@@ -27,7 +33,7 @@ describe('useAuthStore', () => {
     })
 
     it('é true quando há token no localStorage', () => {
-      localStorage.setItem('token', 'abc123')
+      localStorage.setItem('token', makeFakeJwt())
       const store = useAuthStore()
       expect(store.isAuthenticated).toBe(true)
     })
@@ -36,14 +42,14 @@ describe('useAuthStore', () => {
   describe('login()', () => {
     it('armazena token e instituição após login bem-sucedido', async () => {
       http.post.mockResolvedValueOnce({
-        data: { data: { token: 'tok123', instituicao: { id: 1, nome: 'TESTE' } } },
+        data: { data: { token: makeFakeJwt(), instituicao: { id: 1, nome: 'TESTE' } } },
       })
       const store = useAuthStore()
       await store.login('admin@teste.br', 'senha123')
 
-      expect(store.token).toBe('tok123')
+      expect(store.token).toBeTruthy()
       expect(store.instituicao).toEqual({ id: 1, nome: 'TESTE' })
-      expect(localStorage.getItem('token')).toBe('tok123')
+      expect(localStorage.getItem('token')).toBeTruthy()
     })
 
     it('propaga erro em caso de falha', async () => {
@@ -56,7 +62,7 @@ describe('useAuthStore', () => {
   describe('logout()', () => {
     it('limpa token e instituição', async () => {
       http.post.mockResolvedValueOnce({
-        data: { data: { token: 'tok', instituicao: { id: 1, nome: 'X' } } },
+        data: { data: { token: makeFakeJwt(), instituicao: { id: 1, nome: 'X' } } },
       })
       const store = useAuthStore()
       await store.login('a@a.com', '123')

@@ -10,4 +10,9 @@ async function login(req, res) {
   return res.json({ status: 'success', data });
 }
 
-module.exports = { register, login };
+async function me(req, res) {
+  const data = await authService.me(req.institutionId);
+  return res.json({ status: 'success', data });
+}
+
+module.exports = { register, login, me };
