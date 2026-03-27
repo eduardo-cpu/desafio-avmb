@@ -70,7 +70,6 @@ beforeEach(() => {
   });
   mockImportService.consultarStatusImportacao.mockReturnValue({
     id: 'job-1',
-    institutionId: 'inst-1',
     status: 'pending',
     createdAt: new Date().toISOString(),
     startedAt: null,

@@ -16,7 +16,6 @@ function nowIso() {
 function sanitizeJob(job) {
   return {
     id: job.id,
-    institutionId: job.institutionId,
     status: job.status,
     createdAt: job.createdAt,
     startedAt: job.startedAt,
