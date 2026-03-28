@@ -2,6 +2,32 @@ import { config } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, vi } from 'vitest'
 
+const localStorageMock = (() => {
+  let store = {}
+  return {
+    getItem: (key) => store[key] ?? null,
+    setItem: (key, value) => {
+      store[key] = String(value)
+    },
+    removeItem: (key) => {
+      delete store[key]
+    },
+    clear: () => {
+      store = {}
+    },
+    key: (index) => Object.keys(store)[index] ?? null,
+    get length() {
+      return Object.keys(store).length
+    },
+  }
+})()
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+  configurable: true,
+})
+
 beforeEach(() => {
   setActivePinia(createPinia())
 })
@@ -12,8 +38,6 @@ config.global.stubs = {
   RouterView: { template: '<div />' },
 }
 
-// Stub window.URL.createObjectURL
-Object.defineProperty(window, 'URL', {
-  value: { createObjectURL: vi.fn(() => 'blob:stub'), revokeObjectURL: vi.fn() },
-  writable: true,
-})
+// Stub window.URL.createObjectURL preservando o construtor original
+window.URL.createObjectURL = vi.fn(() => 'blob:stub')
+window.URL.revokeObjectURL = vi.fn()

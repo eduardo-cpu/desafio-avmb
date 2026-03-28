@@ -1,4 +1,4 @@
-const { randomUUID } = require('crypto');
+const { randomUUID, createHash } = require('crypto');
 const alunoService = require('./aluno.service');
 const { setTimeout: delay } = require('timers/promises');
 
@@ -37,7 +37,9 @@ function cleanupFinishedJobs() {
     }
   }
 
-  finished.sort((a, b) => new Date(a.finishedAt || a.createdAt) - new Date(b.finishedAt || b.createdAt));
+  finished.sort(
+    (a, b) => new Date(a.finishedAt || a.createdAt) - new Date(b.finishedAt || b.createdAt),
+  );
 
   while (jobs.size > IMPORT_QUEUE_MAX_JOBS && finished.length > 0) {
     const oldest = finished.shift();
@@ -61,7 +63,10 @@ async function runQueue() {
     job.startedAt = nowIso();
 
     try {
-      const { resultados, errosGerais } = await alunoService.importarAlunos(job.lista, job.institutionId);
+      const { resultados, errosGerais } = await alunoService.importarAlunos(
+        job.lista,
+        job.institutionId,
+      );
 
       job.status = 'completed';
       job.importados = resultados.length;
@@ -86,13 +91,36 @@ async function runQueue() {
   processing = false;
 }
 
+function calcularFingerprint(lista, institutionId) {
+  const key = JSON.stringify(lista) + institutionId;
+  return createHash('sha256').update(key).digest('hex');
+}
+
 function enqueueImport(lista, institutionId) {
+  const fingerprint = calcularFingerprint(lista, institutionId);
+
+  for (const job of jobs.values()) {
+    if (
+      job.fingerprint === fingerprint &&
+      job.institutionId === institutionId &&
+      (job.status === 'pending' || job.status === 'processing')
+    ) {
+      let posicaoFila = 0;
+      if (job.status === 'pending') {
+        const index = queue.indexOf(job.id);
+        posicaoFila = index >= 0 ? index + 1 : 0;
+      }
+      return { ...sanitizeJob(job), posicaoFila };
+    }
+  }
+
   const id = randomUUID();
   const createdAt = nowIso();
 
   const job = {
     id,
     institutionId,
+    fingerprint,
     status: 'pending',
     createdAt,
     startedAt: null,

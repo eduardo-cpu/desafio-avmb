@@ -1,6 +1,13 @@
 const axios = require('axios');
 
+const _dispatched = new Set();
+
 async function dispararWebhook(aluno) {
+  if (!aluno.hash || _dispatched.has(aluno.hash)) {
+    return;
+  }
+  _dispatched.add(aluno.hash);
+
   const payload = {
     nome: aluno.nome,
     cpf: aluno.cpf,
@@ -17,4 +24,8 @@ async function dispararWebhook(aluno) {
   }
 }
 
-module.exports = { dispararWebhook };
+function _resetDispatched() {
+  _dispatched.clear();
+}
+
+module.exports = { dispararWebhook, _resetDispatched };
