@@ -49,7 +49,6 @@ model Aluno {
   cursoId String
   curso   Curso  @relation(fields: [cursoId], references: [id])
 
-  @@unique([cpf, cursoId])
   @@map("alunos")
 }
 
