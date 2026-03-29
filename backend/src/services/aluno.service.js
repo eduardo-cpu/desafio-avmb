@@ -68,6 +68,7 @@ async function buscarAluno(id, instituicaoId) {
       dtNascimento: true,
       status: true,
       hash: true,
+      urlCallback: true,
       createdAt: true,
       curso: {
         select: { id: true, nome: true, codigo: true, dtInicio: true, dtFim: true, docente: true },

@@ -11,7 +11,6 @@
           <Upload class="size-3.5 mr-1.5" />
           Importar
         </Button>
-
       </div>
     </div>
 
@@ -55,8 +54,17 @@
                 <Badge :variant="badgeVariant(aluno.status)">{{ aluno.status }}</Badge>
               </TableCell>
               <TableCell class="text-right">
-                <template v-if="aluno.status !== 'CANCELADO'">
-                  <div class="flex items-center justify-end gap-1">
+                <div class="flex items-center justify-end gap-1">
+                  <!-- Visualizar — sempre visível -->
+                  <Button
+                    variant="ghost" size="icon-sm"
+                    class="text-muted-foreground hover:text-foreground"
+                    title="Visualizar dados"
+                    @click="abrirDetalhes(aluno)"
+                  >
+                    <Eye class="size-3.5" />
+                  </Button>
+                  <template v-if="aluno.status !== 'CANCELADO'">
                     <Button
                       v-if="!aluno.hash"
                       variant="ghost" size="icon-sm"
@@ -83,9 +91,8 @@
                     >
                       <Ban class="size-3.5" />
                     </Button>
-                  </div>
-                </template>
-                <span v-else class="text-xs text-muted-foreground">—</span>
+                  </template>
+                </div>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -105,6 +112,110 @@
         </div>
       </div>
     </Card>
+
+    <!-- Dialog detalhes do aluno -->
+    <Dialog v-model:open="detalhesDialog.aberto">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <UserCircle class="size-5" />
+            Dados do Aluno
+          </DialogTitle>
+        </DialogHeader>
+        <template v-if="detalhesDialog.aluno">
+          <div class="space-y-4 text-sm">
+            <!-- Status -->
+            <div class="flex items-center justify-between">
+              <span class="text-muted-foreground">Status</span>
+              <Badge :variant="badgeVariant(detalhesDialog.aluno.status)">
+                {{ detalhesDialog.aluno.status }}
+              </Badge>
+            </div>
+
+            <Separator />
+
+            <!-- Dados pessoais -->
+            <div class="space-y-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dados Pessoais</p>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div>
+                  <p class="text-xs text-muted-foreground">Nome</p>
+                  <p class="font-medium">{{ detalhesDialog.aluno.nome }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">CPF</p>
+                  <p class="font-mono">{{ formatCpf(detalhesDialog.aluno.cpf) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">Data de Nascimento</p>
+                  <p>{{ formatarData(detalhesDialog.aluno.dtNascimento) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">Cadastrado em</p>
+                  <p>{{ formatarData(detalhesDialog.aluno.createdAt) }}</p>
+                </div>
+                <div class="col-span-2">
+                  <p class="text-xs text-muted-foreground">URL de Notificação (Webhook)</p>
+                  <p class="font-mono text-xs break-all bg-muted px-2 py-1.5 rounded mt-0.5">
+                    {{ detalhesDialog.aluno.urlCallback }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <!-- Dados do curso -->
+            <div class="space-y-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Curso</p>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div class="col-span-2">
+                  <p class="text-xs text-muted-foreground">Nome</p>
+                  <p class="font-medium">{{ detalhesDialog.aluno.curso?.nome }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">Código</p>
+                  <p class="font-mono">{{ detalhesDialog.aluno.curso?.codigo }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">Docente</p>
+                  <p>{{ detalhesDialog.aluno.curso?.docente }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">Início</p>
+                  <p>{{ formatarData(detalhesDialog.aluno.curso?.dtInicio) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-muted-foreground">Término</p>
+                  <p>{{ formatarData(detalhesDialog.aluno.curso?.dtFim) }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hash do certificado (se certificado) -->
+            <template v-if="detalhesDialog.aluno.hash">
+              <Separator />
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Certificado</p>
+                <div>
+                  <p class="text-xs text-muted-foreground mb-1">Hash de validação</p>
+                  <p class="font-mono text-xs break-all bg-muted px-2 py-1.5 rounded">
+                    {{ detalhesDialog.aluno.hash }}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" class="w-full" @click="handleDownload(detalhesDialog.aluno.id, detalhesDialog.aluno.hash)">
+                  <Download class="size-3.5 mr-1.5" />
+                  Baixar XML
+                </Button>
+              </div>
+            </template>
+          </div>
+        </template>
+        <DialogFooter>
+          <Button variant="outline" @click="detalhesDialog.aberto = false">Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Dialog confirmação de ação crítica -->
     <Dialog v-model:open="confirmDialog.aberto">
@@ -128,16 +239,17 @@
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Upload, Award, Download, Ban, Users, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Search, Upload, Award, Download, Ban, Users, Loader2, ChevronLeft, ChevronRight, Eye, UserCircle } from 'lucide-vue-next'
 import http from '@/api/http'
 import { useAlunosStore } from '@/stores/alunos'
 import { useToastStore } from '@/stores/toast'
-import { formatCpf, badgeVariant } from '@/utils/formatters'
+import { formatCpf, formatarData, badgeVariant } from '@/utils/formatters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
@@ -162,6 +274,29 @@ function irParaPagina(page) {
   store.listar({ page, busca: busca.value || undefined })
 }
 
+// Dialog de detalhes
+const detalhesDialog = reactive({
+  aberto: false,
+  aluno: null,
+  loading: false,
+})
+
+async function abrirDetalhes(aluno) {
+  detalhesDialog.loading = true
+  detalhesDialog.aberto = true
+  detalhesDialog.aluno = aluno
+  try {
+    const { data } = await http.get(`/alunos/${aluno.id}`)
+    detalhesDialog.aluno = data.data
+  } catch {
+    toast.error('Erro ao carregar dados do aluno')
+    detalhesDialog.aberto = false
+  } finally {
+    detalhesDialog.loading = false
+  }
+}
+
+// Dialog de confirmação
 const confirmDialog = reactive({
   aberto: false,
   titulo: '',
