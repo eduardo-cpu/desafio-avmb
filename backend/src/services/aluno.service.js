@@ -61,7 +61,18 @@ async function listarAlunos(instituicaoId, { page = 1, limit = 20, busca } = {})
 async function buscarAluno(id, instituicaoId) {
   return prisma.aluno.findFirst({
     where: { id, instituicaoId, deletedAt: null },
-    include: { curso: true },
+    select: {
+      id: true,
+      nome: true,
+      cpf: true,
+      dtNascimento: true,
+      status: true,
+      hash: true,
+      createdAt: true,
+      curso: {
+        select: { id: true, nome: true, codigo: true, dtInicio: true, dtFim: true, docente: true },
+      },
+    },
   });
 }
 
