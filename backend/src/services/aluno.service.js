@@ -231,7 +231,10 @@ async function importarAlunos(lista, instituicaoId) {
         });
         resultados.push(aluno);
       } catch (e) {
-        errosGerais.push({ indice, erros: [{ campo: 'geral', motivo: e.message }] });
+        const motivo = e.code === 'P2002'
+          ? 'Aluno já cadastrado neste curso'
+          : e.message;
+        errosGerais.push({ indice, erros: [{ campo: 'geral', motivo }] });
       }
     }
 
