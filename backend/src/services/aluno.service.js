@@ -5,6 +5,7 @@ const { dispararWebhook } = require('./webhook.service');
 const { validarAluno, validarCpf } = require('./validation.service');
 const serviceError = require('../utils/serviceError');
 const { setTimeout: delay } = require('timers/promises');
+const fs = require('fs/promises');
 
 const IMPORT_PROCESS_CHUNK_SIZE = Number.parseInt(
   process.env.IMPORT_PROCESS_CHUNK_SIZE || '100',
@@ -157,7 +158,6 @@ async function certificarAluno(id, instituicaoId) {
     });
   } catch (err) {
     // Se o update falhar, remove o arquivo gerado para evitar arquivo órfão
-    const fs = require('fs/promises');
     await fs.unlink(filePath).catch(() => {});
     throw err;
   }
