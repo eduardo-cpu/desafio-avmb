@@ -91,7 +91,7 @@ npm run test:frontend # Só frontend
 
 ## Funcionalidades
 
-- **Autenticação** — cadastro e login de instituições com JWT
+- **Autenticação** — cadastro e login de instituições com JWT (senha com bcrypt)
 - **Dashboard** — visão geral com totais por status e alunos recentes
 - **Importação via JSON** — importação em lote com fila assíncrona, validação por JSON Schema e CPF
 - **Geração de certificado** — hash SHA-256 imutável + arquivo XML
