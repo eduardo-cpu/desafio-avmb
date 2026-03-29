@@ -133,10 +133,12 @@ async function certificarAluno(id, instituicaoId) {
 
   const hash = gerarHash(aluno);
 
-  const atualizado = await prisma.$transaction(async (tx) => {
-    const filePath = await gerarXml({ ...aluno, hash });
+  // Gera o XML fora da transação — I/O de disco não deve manter conexão de banco aberta
+  const filePath = await gerarXml({ ...aluno, hash });
 
-    return tx.aluno.update({
+  let atualizado;
+  try {
+    atualizado = await prisma.aluno.update({
       where: { id: aluno.id },
       data: { hash, filePath, status: 'CERTIFICADO' },
       select: {
@@ -152,7 +154,12 @@ async function certificarAluno(id, instituicaoId) {
         },
       },
     });
-  });
+  } catch (err) {
+    // Se o update falhar, remove o arquivo gerado para evitar arquivo órfão
+    const fs = require('fs/promises');
+    await fs.unlink(filePath).catch(() => {});
+    throw err;
+  }
 
   dispararWebhook({ ...aluno, hash }).catch(() => {});
   return atualizado;
