@@ -69,11 +69,19 @@ async function runQueue() {
         job.institutionId,
       );
 
-      job.status = 'completed';
+      const todosComErro = resultados.length === 0 && errosGerais.length > 0;
+      const parcialmenteImportado = resultados.length > 0 && errosGerais.length > 0;
+      job.status = todosComErro ? 'completed_with_errors'
+        : parcialmenteImportado ? 'completed_with_errors'
+        : 'completed';
       job.importados = resultados.length;
       job.erros = errosGerais.length;
       job.errosDetalhes = errosGerais;
-      job.message = 'Importação concluída';
+      job.message = todosComErro
+        ? 'Nenhum aluno importado — verifique os erros de validação'
+        : parcialmenteImportado
+        ? `${resultados.length} importado(s), ${errosGerais.length} com erro`
+        : 'Importação concluída';
       job.finishedAt = nowIso();
     } catch (error) {
       job.status = 'failed';
