@@ -23,6 +23,7 @@ function sanitizeJob(job) {
     total: job.total,
     importados: job.importados,
     erros: job.erros,
+    errosDetalhes: job.errosDetalhes,
     message: job.message,
   };
 }
@@ -71,6 +72,7 @@ async function runQueue() {
       job.status = 'completed';
       job.importados = resultados.length;
       job.erros = errosGerais.length;
+      job.errosDetalhes = errosGerais;
       job.message = 'Importação concluída';
       job.finishedAt = nowIso();
     } catch (error) {
@@ -128,6 +130,7 @@ function enqueueImport(lista, institutionId) {
     total: lista.length,
     importados: 0,
     erros: 0,
+    errosDetalhes: [],
     message: 'Importação enfileirada',
     lista,
   };

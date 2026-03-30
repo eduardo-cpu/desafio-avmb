@@ -245,13 +245,17 @@ async function acompanharImportacao(statusUrl, protocolo, total) {
       posicaoFila: job.posicaoFila,
       total,
       importados: job.importados ?? 0,
-      erros: [],
+      erros: job.errosDetalhes ?? [],
       data: [],
       mensagem: job.message,
     }
 
     if (job.status === 'completed') {
-      toast.success(`${job.importados ?? 0} aluno(s) importado(s) com sucesso`)
+      if ((job.importados ?? 0) > 0) {
+        toast.success(`${job.importados} aluno(s) importado(s) com sucesso`)
+      } else {
+        toast.error('Nenhum aluno importado — verifique os erros de validação abaixo.')
+      }
       return
     }
 
