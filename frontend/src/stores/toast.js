@@ -19,6 +19,7 @@ export const useToastStore = defineStore('toast', () => {
   const success = (msg) => add(msg, 'success')
   const error = (msg) => add(msg, 'error')
   const info = (msg) => add(msg, 'info')
+  const warning = (msg) => add(msg, 'warning')
 
-  return { toasts, add, remove, success, error, info }
+  return { toasts, add, remove, success, error, info, warning }
 })
