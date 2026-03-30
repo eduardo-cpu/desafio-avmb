@@ -174,7 +174,7 @@ async function importarAlunos(lista, instituicaoId) {
     for (let j = 0; j < chunk.length; j++) {
       const item = chunk[j];
       const i = offset + j;
-      const indice = `item[${i}]`;
+      const indice = i;
 
       const { valido, erros } = validarAluno(item);
       if (!valido) {

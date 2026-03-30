@@ -61,14 +61,14 @@ describe("validarAluno", () => {
     const { nome, ...semNome } = alunoValido;
     const { valido, erros } = validarAluno(semNome);
     expect(valido).toBe(false);
-    expect(erros.some((e) => e.campo === "nome")).toBe(true);
+    expect(erros.some((e) => e.campo === "Nome")).toBe(true);
   });
 
   test("retorna valido=false quando cpf está ausente", () => {
     const { cpf, ...semCpf } = alunoValido;
     const { valido, erros } = validarAluno(semCpf);
     expect(valido).toBe(false);
-    expect(erros.some((e) => e.campo === "cpf")).toBe(true);
+    expect(erros.some((e) => e.campo === "CPF")).toBe(true);
   });
 
   test("retorna valido=false para CPF com formato inválido", () => {
@@ -77,14 +77,14 @@ describe("validarAluno", () => {
       cpf: "abc-invalido",
     });
     expect(valido).toBe(false);
-    expect(erros.some((e) => e.campo === "cpf")).toBe(true);
+    expect(erros.some((e) => e.campo === "CPF")).toBe(true);
   });
 
   test("retorna valido=false quando curso está ausente", () => {
     const { curso, ...semCurso } = alunoValido;
     const { valido, erros } = validarAluno(semCurso);
     expect(valido).toBe(false);
-    expect(erros.some((e) => e.campo === "curso")).toBe(true);
+    expect(erros.some((e) => e.campo === "Curso")).toBe(true);
   });
 
   test("retorna valido=false para data de nascimento fora do formato ISO", () => {
