@@ -225,6 +225,7 @@ function statusLabel(status) {
   if (status === 'queued' || status === 'pending') return 'Na fila'
   if (status === 'processing') return 'Processando'
   if (status === 'completed') return 'Concluída'
+  if (status === 'completed_with_errors') return 'Concluída com erros'
   if (status === 'failed') return 'Falhou'
   return status || 'Desconhecido'
 }
@@ -239,7 +240,7 @@ async function acompanharImportacao(statusUrl, protocolo, total) {
     const job = data.data
 
     resultado.value = {
-      fase: job.status === 'completed' || job.status === 'failed' ? 'completed' : job.status,
+      fase: ['completed', 'completed_with_errors', 'failed'].includes(job.status) ? 'completed' : job.status,
       statusFila: job.status,
       protocolo,
       posicaoFila: job.posicaoFila,
@@ -251,8 +252,13 @@ async function acompanharImportacao(statusUrl, protocolo, total) {
     }
 
     if (job.status === 'completed') {
+      toast.success(`${job.importados} aluno(s) importado(s) com sucesso`)
+      return
+    }
+
+    if (job.status === 'completed_with_errors') {
       if ((job.importados ?? 0) > 0) {
-        toast.success(`${job.importados} aluno(s) importado(s) com sucesso`)
+        toast.warning(`${job.importados} importado(s), ${job.erros} com erro — verifique os detalhes abaixo.`)
       } else {
         toast.error('Nenhum aluno importado — verifique os erros de validação abaixo.')
       }

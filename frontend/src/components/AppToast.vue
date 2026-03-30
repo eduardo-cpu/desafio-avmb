@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { CheckCircle2, XCircle, Info, AlertCircle, X } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Info, AlertCircle, AlertTriangle, X } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 
 const store = useToastStore()
@@ -43,6 +43,7 @@ function toastClass(type) {
     success: 'bg-green-50 border-green-200 text-green-800',
     error: 'bg-red-50 border-red-200 text-red-800',
     info: 'bg-blue-50 border-blue-200 text-blue-800',
+    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     default: 'bg-background border-border text-foreground',
   }
   return map[type] ?? map.default
@@ -53,6 +54,7 @@ function toastIcon(type) {
     success: CheckCircle2,
     error: XCircle,
     info: Info,
+    warning: AlertTriangle,
     default: AlertCircle,
   }
   return map[type] ?? map.default
